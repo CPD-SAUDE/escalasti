@@ -1,130 +1,155 @@
 # Sistema de Escala de Sobreaviso
 
-Este é um sistema para gerenciar escalas de sobreaviso, permitindo a organização de profissionais, horários e o registro de histórico.
+Este é um sistema para gerenciar escalas de sobreaviso, desenvolvido com Next.js para o frontend e Node.js/Express para o backend, utilizando SQLite como banco de dados.
+
+## Visão Geral
+
+O sistema permite:
+- Gerenciar profissionais (adicionar, editar, remover).
+- Criar e visualizar escalas de sobreaviso por mês.
+- Atribuir profissionais a dias específicos na escala.
+- Visualizar o histórico de escalas.
+- Configurar parâmetros do sistema.
 
 ## Tecnologias Utilizadas
 
-*   **Frontend:** Next.js (React), TypeScript, Tailwind CSS, Shadcn/ui
-*   **Backend:** Node.js (Express.js)
-*   **Banco de Dados:** SQLite (usando `sqlite3`)
+**Frontend:**
+- Next.js 14 (React Framework)
+- Tailwind CSS
+- Shadcn/ui
+- Lucide React Icons
 
-## Estrutura do Projeto
+**Backend:**
+- Node.js
+- Express.js
+- SQLite3 (para persistência de dados)
 
-*   `app/`: Contém os arquivos do frontend Next.js (páginas, layouts, etc.).
-*   `backend/`: Contém o código do servidor Node.js (API REST).
-    *   `backend/controllers/`: Lógica de negócio para cada rota.
-    *   `backend/database/`: Configuração e operações do banco de dados SQLite.
-    *   `backend/routes/`: Definição das rotas da API.
-    *   `backend/scripts/`: Scripts utilitários (ex: para obter IP de rede, inicializar DB).
-    *   `backend/server.js`: Ponto de entrada principal do servidor.
-*   `components/`: Componentes React reutilizáveis do frontend.
-*   `hooks/`: Hooks personalizados do React.
-*   `lib/`: Funções utilitárias e definições de tipos.
-*   `public/`: Ativos estáticos (imagens, etc.).
-*   `docker-compose.yml`: Arquivo para orquestrar os serviços Docker (frontend e backend).
-*   `Dockerfile`: Dockerfile para o frontend.
-*   `backend/Dockerfile`: Dockerfile para o backend.
+## Pré-requisitos
 
-## Como Rodar o Sistema (Localmente - Sem Docker)
+Antes de começar, certifique-se de ter as seguintes ferramentas instaladas em sua máquina:
 
-**Pré-requisitos:**
+-   [Node.js](https://nodejs.org/en/download/) (versão 18 ou superior)
+-   [npm](https://www.npmjs.com/get-npm) (gerenciador de pacotes do Node.js, geralmente vem com o Node.js)
+-   [Git](https://git-scm.com/downloads)
+-   [Docker Desktop](https://www.docker.com/products/docker-desktop) (recomendado para facilitar a execução)
 
-*   Node.js (versão 18 ou superior) e npm instalados.
+## Instalação e Execução (Recomendado: Docker Compose)
 
-1.  **Clonar o Repositório:**
+A maneira mais fácil de configurar e executar o sistema é usando o Docker Compose.
+
+1.  **Clone o repositório:**
     \`\`\`bash
-    git clone <URL_DO_SEU_REPOSITORIO>
-    cd <nome_da_pasta_do_projeto>
+    git clone https://github.com/CPD-SAUDE/escalasti.git
+    cd escalasti
     \`\`\`
 
-2.  **Instalar Dependências do Backend:**
+2.  **Inicie o sistema com Docker Compose:**
+    Na raiz do projeto (onde está o `docker-compose.yml`), execute:
+    \`\`\`bash
+    docker compose up --build -d
+    \`\`\`
+    -   `--build`: Constrói as imagens Docker para o frontend e backend.
+    -   `-d`: Executa os contêineres em segundo plano.
+
+3.  **Acesse a aplicação:**
+    Após os contêineres serem iniciados (pode levar alguns minutos na primeira vez), abra seu navegador e acesse:
+    \`\`\`
+    http://localhost:3000
+    \`\`\`
+
+4.  **Para parar o sistema:**
+    Na raiz do projeto, execute:
+    \`\`\`bash
+    docker compose down
+    \`\`\`
+
+## Instalação e Execução (Manual - Sem Docker)
+
+Se você preferir executar o frontend e o backend separadamente sem Docker:
+
+### 1. Backend
+
+1.  **Navegue até a pasta do backend:**
     \`\`\`bash
     cd backend
-    npm install
-    cd ..
     \`\`\`
-
-3.  **Instalar Dependências do Frontend:**
+2.  **Instale as dependências:**
     \`\`\`bash
     npm install
     \`\`\`
-
-4.  **Inicializar o Banco de Dados (Backend):**
-    O banco de dados SQLite será criado automaticamente na primeira execução do backend. Você pode forçar a inicialização das tabelas com:
-    \`\`\`bash
-    node backend/scripts/init-database.js
-    \`\`\`
-
-5.  **Configurar Variáveis de Ambiente (Frontend):**
-    Crie um arquivo `.env.local` na raiz do projeto (onde está o `package.json` do frontend) com o seguinte conteúdo:
-    \`\`\`
-    NEXT_PUBLIC_API_URL=http://localhost:3001/api
-    PORT=3000
-    \`\`\`
-
-6.  **Iniciar o Backend:**
-    Abra um novo terminal, navegue até a pasta `backend` e execute:
+3.  **Inicie o servidor backend:**
     \`\`\`bash
     npm start
     \`\`\`
     O backend estará rodando em `http://localhost:3001`.
 
-7.  **Iniciar o Frontend:**
-    Abra outro terminal, navegue até a raiz do projeto e execute:
+### 2. Frontend
+
+1.  **Navegue de volta para a raiz do projeto:**
+    \`\`\`bash
+    cd ..
+    \`\`\`
+2.  **Instale as dependências do frontend:**
+    \`\`\`bash
+    npm install --force # Use --force se encontrar erros de dependência
+    \`\`\`
+3.  **Configure a URL da API:**
+    Você precisa informar ao frontend onde o backend está rodando. Defina a variável de ambiente `NEXT_PUBLIC_API_URL`.
+    -   **No Windows (CMD):**
+        \`\`\`cmd
+        set NEXT_PUBLIC_API_URL=http://localhost:3001/api
+        npm run dev
+        ```
+    -   **No Windows (PowerShell):**
+        ```powershell
+        $env:NEXT_PUBLIC_API_URL="http://localhost:3001/api"
+        npm run dev
+        ```
+    -   **No Linux/macOS:**
+        \`\`\`bash
+        export NEXT_PUBLIC_API_URL=http://localhost:3001/api
+        npm run dev
+        ```
+4.  **Inicie o servidor de desenvolvimento do frontend:**
     \`\`\`bash
     npm run dev
     \`\`\`
     O frontend estará rodando em `http://localhost:3000`.
 
-## Como Rodar o Sistema (Com Docker Compose)
+## Estrutura do Projeto
 
-**Pré-requisitos:**
-
-*   Docker Desktop instalado e em execução.
-
-1.  **Clonar o Repositório:**
-    \`\`\`bash
-    git clone <URL_DO_SEU_REPOSITORIO>
-    cd <nome_da_pasta_do_projeto>
-    \`\`\`
-
-2.  **Construir e Iniciar os Containers:**
-    Na raiz do projeto (onde está o `docker-compose.yml`), execute:
-    \`\`\`bash
-    docker compose up --build -d
-    \`\`\`
-    *   `--build`: Garante que as imagens Docker sejam construídas.
-    *   `-d`: Executa os containers em segundo plano.
-
-3.  **Acessar a Aplicação:**
-    Abra seu navegador e acesse: `http://localhost:3000`
-
-4.  **Parar a Aplicação Docker:**
-    Na raiz do projeto, execute:
-    \`\`\`bash
-    docker compose down
-    \`\`\`
-    Para remover também os volumes (incluindo o banco de dados), use:
-    \`\`\`bash
-    docker compose down -v
-    \`\`\`
-
-## Rotas da API (Backend)
-
-*   `GET /api/status`: Verifica o status do backend.
-*   `GET /api/professionals`: Lista todos os profissionais.
-*   `POST /api/professionals`: Adiciona um novo profissional.
-*   `PUT /api/professionals/:id`: Atualiza um profissional existente.
-*   `DELETE /api/professionals/:id`: Remove um profissional.
-*   `GET /api/schedule/:year/:month`: Obtém a escala de um mês/ano específico.
-*   `POST /api/schedule`: Salva a escala de um mês/ano.
-*   `GET /api/history`: Lista o histórico de escalas salvas.
-*   `POST /api/history`: Salva uma escala no histórico.
-*   `GET /api/history/:id`: Obtém uma escala específica do histórico.
-*   `DELETE /api/history/:id`: Remove uma entrada do histórico.
-*   `GET /api/config`: Obtém as configurações do sistema.
-*   `PUT /api/config`: Atualiza as configurações do sistema.
+\`\`\`
+.
+├── app/                  # Configurações globais do Next.js (layout, page)
+├── backend/              # Código-fonte do servidor Node.js/Express
+│   ├── controllers/      # Lógica de negócio para as rotas
+│   ├── database/         # Configuração do banco de dados SQLite
+│   ├── routes/           # Definição das rotas da API
+│   ├── scripts/          # Scripts de inicialização (ex: init-database)
+│   ├── server.js         # Ponto de entrada do servidor
+│   └── package.json      # Dependências do backend
+├── components/           # Componentes React reutilizáveis
+│   └── ui/               # Componentes Shadcn/ui
+├── hooks/                # Hooks React personalizados
+├── lib/                  # Funções utilitárias e definições de tipos
+├── public/               # Ativos estáticos (imagens, etc.)
+├── styles/               # Estilos globais (Tailwind CSS)
+├── docker-compose.yml    # Definição dos serviços Docker (frontend e backend)
+├── Dockerfile            # Dockerfile para o frontend (Next.js)
+├── backend/Dockerfile    # Dockerfile para o backend (Node.js)
+├── package.json          # Dependências do frontend
+├── next.config.mjs       # Configuração do Next.js
+├── postcss.config.mjs    # Configuração do PostCSS
+├── tailwind.config.ts    # Configuração do Tailwind CSS
+├── tsconfig.json         # Configuração do TypeScript
+└── ... outros arquivos de configuração e scripts
+\`\`\`
 
 ## Contribuição
 
-Sinta-se à vontade para contribuir com melhorias, correções de bugs ou novas funcionalidades.
+Sinta-se à vontade para contribuir com melhorias, correções de bugs ou novas funcionalidades. Por favor, siga as boas práticas de desenvolvimento e crie pull requests.
+
+## Licença
+
+[Adicione sua licença aqui, por exemplo, MIT]
+\`\`\`

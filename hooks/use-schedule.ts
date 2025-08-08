@@ -1,52 +1,44 @@
-'use client'
-
 import { useState, useEffect, useCallback } from 'react'
-import { api } from '@/lib/api'
-import { ScheduleEntry } from '@/lib/types'
-import { toast } from 'sonner'
+import { fetchSchedule, saveSchedule as apiSaveSchedule } from '@/lib/api'
+import { ScheduleData } from '@/lib/types'
 
-export function useSchedule() {
-  const [schedule, setSchedule] = useState<ScheduleEntry[]>([])
-  const [currentMonth, setCurrentMonth] = useState(new Date().getMonth() + 1) // 1-12
-  const [currentYear, setCurrentYear] = useState(new Date().getFullYear())
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+export function useSchedule(year: number, month: number) {
+  const [schedule, setSchedule] = useState<ScheduleData>({})
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<Error | null>(null)
 
-  const fetchSchedule = useCallback(async (year: number, month: number) => {
-    setLoading(true)
+  const loadSchedule = useCallback(async () => {
+    setIsLoading(true)
     setError(null)
     try {
-      const response = await api.get(`/schedule/${year}/${month}`)
-      // Certifica-se de que cada dia tem um objeto completo, mesmo que vazio
-      const daysInMonth = new Date(year, month, 0).getDate()
-      const initialSchedule: ScheduleEntry[] = Array.from({ length: daysInMonth }, (_, i) => {
-        const day = i + 1
-        const existingEntry = response.data.find((entry: ScheduleEntry) => entry.day === day)
-        return existingEntry || { day, professionalId: null, hours: null, notes: '' }
-      })
-      setSchedule(initialSchedule)
+      const data = await fetchSchedule(year, month)
+      setSchedule(data)
     } catch (err: any) {
-      console.error('Erro ao buscar escala:', err)
-      setError(err.message || 'Erro ao carregar escala.')
-      toast.error('Erro ao carregar escala.')
+      setError(err)
+      console.error('Failed to fetch schedule:', err)
     } finally {
-      setLoading(false)
+      setIsLoading(false)
     }
-  }, [])
+  }, [year, month])
 
   useEffect(() => {
-    fetchSchedule(currentYear, currentMonth)
-  }, [currentYear, currentMonth, fetchSchedule])
+    loadSchedule()
+  }, [loadSchedule])
 
-  return {
-    schedule,
-    setSchedule,
-    currentMonth,
-    setCurrentMonth,
-    currentYear,
-    setCurrentYear,
-    loading,
-    error,
-    fetchSchedule,
-  }
+  const updateSchedule = useCallback(
+    async (year: number, month: number, data: ScheduleData) => {
+      setError(null)
+      try {
+        await apiSaveSchedule(year, month, data)
+        setSchedule(data) // Update local state immediately on success
+      } catch (err: any) {
+        setError(err)
+        console.error('Failed to save schedule:', err)
+        throw err
+      }
+    },
+    [],
+  )
+
+  return { schedule, isLoading, error, updateSchedule, refetch: loadSchedule }
 }

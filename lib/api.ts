@@ -1,136 +1,68 @@
-// lib/api.ts
-import { Professional, ScheduleEntry, HistoryRecord, Config } from './types';
-import { useState, useEffect } from 'react';
-import axios from 'axios';
+import { Professional, ScheduleData, HistoryEntry, Config } from './types'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'
 
-export interface ScheduleEntryWithProfessional extends ScheduleEntry {
-  professional_name: string;
-  professional_color: string;
+// Helper function for API calls
+async function apiCall<T>(
+  url: string,
+  method: string,
+  data?: any,
+): Promise<T> {
+  const response = await fetch(`${API_BASE_URL}${url}`, {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: data ? JSON.stringify(data) : undefined,
+  })
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ message: 'Unknown error' }))
+    throw new Error(errorData.error || errorData.message || 'Something went wrong')
+  }
+
+  // For DELETE requests, response might be empty
+  if (response.status === 204 || response.headers.get('content-length') === '0') {
+    return {} as T // Return an empty object for successful empty responses
+  }
+
+  return response.json()
 }
 
-// Classe para agrupar todas as chamadas de API
-class ApiClient {
-  private baseUrl: string;
+// Professionals API
+export const fetchProfessionals = (): Promise<Professional[]> =>
+  apiCall<Professional[]>('/professionals', 'GET')
 
-  constructor(baseUrl: string) {
-    this.baseUrl = baseUrl;
-  }
+export const addProfessional = (name: string, color: string): Promise<Professional> =>
+  apiCall<Professional>('/professionals', 'POST', { name, color })
 
-  // --- Professionals API ---
-  async getProfessionals(): Promise<Professional[]> {
-    const response = await axios.get(`${this.baseUrl}/professionals`);
-    return response.data;
-  }
+export const updateProfessional = (
+  id: number,
+  name: string,
+  color: string,
+): Promise<Professional> =>
+  apiCall<Professional>(`/professionals/${id}`, 'PUT', { name, color })
 
-  async createProfessional(professional: Omit<Professional, 'id' | 'created_at' | 'updated_at'>): Promise<Professional> {
-    const response = await axios.post(`${this.baseUrl}/professionals`, professional);
-    return response.data;
-  }
+export const deleteProfessional = (id: number): Promise<void> =>
+  apiCall<void>(`/professionals/${id}`, 'DELETE')
 
-  async updateProfessional(id: string, professional: Partial<Omit<Professional, 'id' | 'created_at' | 'updated_at'>>): Promise<Professional> {
-    const response = await axios.put(`${this.baseUrl}/professionals/${id}`, professional);
-    return response.data;
-  }
+// Schedule API
+export const fetchSchedule = (year: number, month: number): Promise<ScheduleData> =>
+  apiCall<ScheduleData>(`/schedule/${year}/${month}`, 'GET')
 
-  async deleteProfessional(id: string): Promise<{ message: string }> {
-    const response = await axios.delete(`${this.baseUrl}/professionals/${id}`);
-    return response.data;
-  }
+export const saveSchedule = (
+  year: number,
+  month: number,
+  data: ScheduleData,
+): Promise<void> => apiCall<void>('/schedule', 'POST', { year, month, data })
 
-  // --- Schedule API ---
-  async getScheduleEntries(): Promise<ScheduleEntryWithProfessional[]> {
-    // Este método é genérico, para buscar todas as entradas sem filtro de mês/ano
-    const response = await axios.get(`${this.baseUrl}/schedule`);
-    return response.data;
-  }
+// History API
+export const fetchHistory = (): Promise<HistoryEntry[]> =>
+  apiCall<HistoryEntry[]>('/history', 'GET')
 
-  async getScheduleByMonth(year: number, month: number): Promise<ScheduleEntryWithProfessional[]> {
-    const response = await axios.get(`${this.baseUrl}/schedule?year=${year}&month=${month}`);
-    return response.data;
-  }
+// Config API
+export const fetchConfig = (): Promise<Config> =>
+  apiCall<Config>('/config', 'GET')
 
-  async createOrUpdateScheduleEntry(entry: Omit<ScheduleEntry, 'id' | 'created_at' | 'updated_at'>): Promise<ScheduleEntry> {
-    const response = await axios.post(`${this.baseUrl}/schedule`, entry);
-    return response.data;
-  }
-
-  async deleteScheduleEntry(date: string): Promise<{ message: string }> {
-    const response = await axios.delete(`${this.baseUrl}/schedule/${date}`);
-    return response.data;
-  }
-
-  async clearScheduleMonth(year: number, month: number): Promise<{ message: string, deletedCount: number }> {
-    const response = await axios.post(`${this.baseUrl}/schedule/clear-month`, { year, month });
-    return response.data;
-  }
-
-  // --- History API ---
-  async getHistoryRecords(): Promise<HistoryRecord[]> {
-    const response = await axios.get(`${this.baseUrl}/history`);
-    return response.data;
-  }
-
-  async saveToHistory(record: Omit<HistoryRecord, 'id' | 'created_at'>): Promise<HistoryRecord> {
-    const response = await axios.post(`${this.baseUrl}/history`, record);
-    return response.data;
-  }
-
-  async deleteFromHistory(id: string): Promise<{ message: string }> {
-    const response = await axios.delete(`${this.baseUrl}/history/${id}`);
-    return response.data;
-  }
-
-  // --- Config API ---
-  async getConfig(): Promise<Config> {
-    const response = await axios.get(`${this.baseUrl}/config`);
-    return response.data;
-  }
-
-  async updateConfig(config: Omit<Config, 'id' | 'created_at' | 'updated_at'>): Promise<Config> {
-    const response = await axios.put(`${this.baseUrl}/config`, config);
-    return response.data;
-  }
-}
-
-// Exporta uma instância única do ApiClient
-export const apiClient = new ApiClient(API_URL);
-
-// Hook para verificar a conexão com a API
-export function useApiConnection() {
-  const [isConnected, setIsConnected] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    let isMounted = true; // Flag para evitar atualização de estado em componente desmontado
-
-    const checkConnection = async () => {
-      setIsLoading(true);
-      try {
-        const response = await axios.get(`${API_URL}/status`);
-        if (isMounted) {
-          setIsConnected(response.ok);
-        }
-      } catch (error) {
-        if (isMounted) {
-          setIsConnected(false);
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    checkConnection();
-    const interval = setInterval(checkConnection, 5000); // Verifica a cada 5 segundos
-
-    return () => {
-      isMounted = false; // Limpa a flag ao desmontar
-      clearInterval(interval);
-    };
-  }, []);
-
-  return { isConnected, isLoading };
-}
+export const updateConfig = (config: Partial<Config>): Promise<Config> =>
+  apiCall<Config>('/config', 'PUT', config)

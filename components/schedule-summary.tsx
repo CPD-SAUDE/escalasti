@@ -1,79 +1,72 @@
-'use client'
-
-import { useMemo } from 'react'
-import { useSchedule } from '@/hooks/use-schedule'
-import { useProfessionals } from '@/hooks/use-professionals'
+import { Professional, ScheduleData } from '@/lib/types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Loader2 } from 'lucide-react'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 
-export function ScheduleSummary() {
-  const { schedule, loading: scheduleLoading } = useSchedule()
-  const { professionals, loading: professionalsLoading } = useProfessionals()
+interface ScheduleSummaryProps {
+  schedule: ScheduleData
+  professionals: Professional[]
+}
 
-  const summary = useMemo(() => {
-    const initialSummary: { [key: number]: { totalHours: number; days: number[] } } = {}
+export default function ScheduleSummary({
+  schedule,
+  professionals,
+}: ScheduleSummaryProps) {
+  const professionalCounts: { [key: number]: number } = {}
+  professionals.forEach((p) => (professionalCounts[p.id] = 0))
 
-    professionals.forEach(p => {
-      initialSummary[p.id] = { totalHours: 0, days: [] }
-    })
-
-    schedule.forEach(entry => {
-      if (entry.professionalId !== null && entry.hours !== null && entry.hours > 0) {
-        if (initialSummary[entry.professionalId]) {
-          initialSummary[entry.professionalId].totalHours += entry.hours
-          initialSummary[entry.professionalId].days.push(entry.day)
-        }
-      }
-    })
-
-    return initialSummary
-  }, [schedule, professionals])
-
-  if (scheduleLoading || professionalsLoading) {
-    return (
-      <div className="flex justify-center items-center h-48">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-2">Calculando resumo...</span>
-      </div>
-    )
-  }
+  Object.values(schedule).forEach((professionalId) => {
+    if (professionalId !== null && professionalCounts[professionalId] !== undefined) {
+      professionalCounts[professionalId]++
+    }
+  })
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Resumo da Escala</CardTitle>
+        <CardTitle className="text-2xl font-bold">Resumo da Escala</CardTitle>
       </CardHeader>
       <CardContent>
-        {professionals.length === 0 ? (
-          <p className="text-center text-muted-foreground">Nenhum profissional cadastrado para gerar o resumo.</p>
-        ) : (
-          <Table>
-            <TableHeader>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Profissional</TableHead>
+              <TableHead className="text-right">Dias na Escala</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {professionals.length === 0 ? (
               <TableRow>
-                <TableHead>Profissional</TableHead>
-                <TableHead>Total de Horas</TableHead>
-                <TableHead>Dias de Sobreaviso</TableHead>
+                <TableCell colSpan={2} className="text-center text-gray-500">
+                  Nenhum profissional cadastrado.
+                </TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {professionals.map(p => {
-                const professionalSummary = summary[p.id]
-                return (
-                  <TableRow key={p.id}>
-                    <TableCell className="font-medium">{p.name}</TableCell>
-                    <TableCell>{professionalSummary?.totalHours || 0}</TableCell>
-                    <TableCell>
-                      {professionalSummary?.days.length > 0
-                        ? professionalSummary.days.sort((a, b) => a - b).join(', ')
-                        : 'Nenhum'}
-                    </TableCell>
-                  </TableRow>
-                )
-              })}
-            </TableBody>
-          </Table>
-        )}
+            ) : (
+              professionals.map((professional) => (
+                <TableRow key={professional.id}>
+                  <TableCell className="font-medium">
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="h-4 w-4 rounded-full border"
+                        style={{ backgroundColor: professional.color }}
+                      />
+                      {professional.name}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {professionalCounts[professional.id] || 0}
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
       </CardContent>
     </Card>
   )

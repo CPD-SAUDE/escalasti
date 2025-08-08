@@ -1,32 +1,40 @@
-const db = require('../database/database');
+const db = require('../database/database')
+const { addHistoryEntry } = require('./historyController')
 
 exports.getSchedule = (req, res) => {
-    const { year, month } = req.params;
-    db.get("SELECT data FROM schedules WHERE year = ? AND month = ?", [year, month], (err, row) => {
-        if (err) {
-            console.error("Erro ao buscar escala:", err.message);
-            return res.status(500).json({ error: err.message });
-        }
-        if (row) {
-            res.json(JSON.parse(row.data));
-        } else {
-            res.json([]); // Retorna um array vazio se não houver dados para o mês/ano
-        }
-    });
-};
+  const { year, month } = req.params
+  db.get(
+    'SELECT * FROM schedule WHERE year = ? AND month = ?',
+    [year, month],
+    (err, row) => {
+      if (err) {
+        res.status(500).json({ error: err.message })
+        return
+      }
+      res.json(row ? JSON.parse(row.data) : {})
+    },
+  )
+}
 
 exports.saveSchedule = (req, res) => {
-    const { year, month, scheduleData } = req.body;
-    const dataString = JSON.stringify(scheduleData);
+  const { year, month, data } = req.body
+  if (!year || !month || !data) {
+    res.status(400).json({ error: 'Year, month, and data are required' })
+    return
+  }
 
-    db.run(`INSERT OR REPLACE INTO schedules (year, month, data) VALUES (?, ?, ?)`,
-        [year, month, dataString],
-        function (err) {
-            if (err) {
-                console.error("Erro ao salvar escala:", err.message);
-                return res.status(500).json({ error: err.message });
-            }
-            res.status(200).json({ message: 'Escala salva com sucesso', changes: this.changes });
-        }
-    );
-};
+  const jsonData = JSON.stringify(data)
+
+  db.run(
+    `INSERT OR REPLACE INTO schedule (year, month, data) VALUES (?, ?, ?)`,
+    [year, month, jsonData],
+    function (err) {
+      if (err) {
+        res.status(500).json({ error: err.message })
+        return
+      }
+      addHistoryEntry('save_schedule', { year, month, data })
+      res.json({ message: 'Schedule saved successfully', changes: this.changes })
+    },
+  )
+}

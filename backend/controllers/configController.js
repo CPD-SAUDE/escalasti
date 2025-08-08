@@ -1,25 +1,26 @@
-const db = require('../database/database');
+const db = require('../database/database')
 
 exports.getConfig = (req, res) => {
-    db.get("SELECT companyName, departmentName, systemName FROM config WHERE id = 1", (err, row) => {
-        if (err) {
-            console.error("Erro ao buscar configuração:", err.message);
-            return res.status(500).json({ error: err.message });
-        }
-        res.json(row || { companyName: null, departmentName: null, systemName: null });
-    });
-};
+  db.get('SELECT * FROM config WHERE id = 1', (err, row) => {
+    if (err) {
+      res.status(500).json({ error: err.message })
+      return
+    }
+    res.json(row || {})
+  })
+}
 
 exports.updateConfig = (req, res) => {
-    const { companyName, departmentName, systemName } = req.body;
-    db.run(`UPDATE config SET companyName = ?, departmentName = ?, systemName = ? WHERE id = 1`,
-        [companyName, departmentName, systemName],
-        function (err) {
-            if (err) {
-                console.error("Erro ao atualizar configuração:", err.message);
-                return res.status(500).json({ error: err.message });
-            }
-            res.json({ message: 'Configuração atualizada com sucesso', changes: this.changes });
-        }
-    );
-};
+  const { api_url } = req.body
+  db.run(
+    `INSERT OR REPLACE INTO config (id, api_url) VALUES (1, ?)`,
+    [api_url],
+    function (err) {
+      if (err) {
+        res.status(500).json({ error: err.message })
+        return
+      }
+      res.json({ message: 'Config updated successfully', changes: this.changes })
+    },
+  )
+}

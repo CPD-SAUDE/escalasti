@@ -1,104 +1,112 @@
 @echo off
-echo ========================================
-echo  SISTEMA DE ESCALA DE SOBREAVISO
-echo  Instalacao Completa
-echo ========================================
+echo ==================================================
+echo  Instalador do Sistema de Escala de Sobreaviso
+echo ==================================================
+echo.
 
-REM Verificar se Node.js está instalado
-node --version >nul 2>&1
+REM Verifica se o Node.js esta instalado
+where node >nul 2>nul
 if %errorlevel% neq 0 (
-    echo ERRO: Node.js nao encontrado!
-    echo Por favor, instale o Node.js antes de continuar.
-    echo Download: https://nodejs.org/
+    echo ERRO: Node.js nao encontrado. Por favor, instale o Node.js (versao 18 ou superior) e tente novamente.
+    echo Baixe em: https://nodejs.org/
     pause
     exit /b 1
 )
+echo Node.js detectado.
 
-echo Node.js encontrado: 
-node --version
+REM Verifica se o npm esta instalado
+where npm >nul 2>nul
+if %errorlevel% neq 0 (
+    echo ERRO: npm nao encontrado. Por favor, instale o Node.js (npm vem junto) e tente novamente.
+    pause
+    exit /b 1
+)
+echo npm detectado.
+
+REM Verifica se o Git esta instalado
+where git >nul 2>nul
+if %errorlevel% neq 0 (
+    echo ERRO: Git nao encontrado. Por favor, instale o Git e tente novamente.
+    echo Baixe em: https://git-scm.com/downloads
+    pause
+    exit /b 1
+)
+echo Git detectado.
 
 echo.
-echo ========================================
-echo  INSTALANDO BACKEND
-echo ========================================
+echo Iniciando a instalacao...
 
-REM Navegar para pasta backend
+REM Navega para o diretorio do script
+cd /d "%~dp0"
+
+REM Instala as dependencias do backend
+echo.
+echo --- Instalando dependencias do Backend ---
 cd backend
-
-REM Instalar dependências do backend
-echo Instalando dependencias do backend...
-npm install
+call npm install
 if %errorlevel% neq 0 (
-    echo ERRO: Falha ao instalar dependencias do backend!
+    echo ERRO: Falha ao instalar dependencias do backend.
     pause
     exit /b 1
 )
+echo Dependencias do backend instaladas.
 
-REM Inicializar banco de dados
-echo Inicializando banco de dados...
-npm run init-db
+REM Inicializa o banco de dados do backend
+echo.
+echo --- Inicializando o Banco de Dados do Backend ---
+call npm run init-db
 if %errorlevel% neq 0 (
-    echo ERRO: Falha ao inicializar banco de dados!
+    echo ERRO: Falha ao inicializar o banco de dados do backend.
     pause
     exit /b 1
 )
-
-echo Backend instalado com sucesso!
-
-REM Voltar para pasta raiz
+echo Banco de dados do backend inicializado.
 cd ..
 
+REM Instala as dependencias do frontend
 echo.
-echo ========================================
-echo  INSTALANDO FRONTEND
-echo ========================================
-
-REM Instalar dependências do frontend
-echo Instalando dependencias do frontend...
-npm install
+echo --- Instalando dependencias do Frontend ---
+REM Usar --force devido a possiveis problemas de resolucao de dependencias
+call npm install --force
 if %errorlevel% neq 0 (
-    echo ERRO: Falha ao instalar dependencias do frontend!
+    echo ERRO: Falha ao instalar dependencias do frontend.
     pause
     exit /b 1
 )
+echo Dependencias do frontend instaladas.
 
-echo Frontend instalado com sucesso!
-
+REM Constrói o frontend para producao
 echo.
-echo ========================================
-echo  CONFIGURANDO VARIAVEIS DE AMBIENTE
-echo ========================================
-
-REM Criar arquivo .env.local se não existir
-if not exist ".env.local" (
-    echo Criando arquivo de configuracao...
-    echo NEXT_PUBLIC_API_URL=http://localhost:3001/api > .env.local
-    echo PORT=3000 >> .env.local
-    echo Arquivo .env.local criado!
-) else (
-    echo Arquivo .env.local ja existe.
+echo --- Construindo o Frontend para Producao ---
+REM Define a variavel de ambiente NEXT_PUBLIC_API_URL para o build
+set NEXT_PUBLIC_API_URL=http://localhost:3001/api
+call npm run build
+if %errorlevel% neq 0 (
+    echo ERRO: Falha ao construir o frontend.
+    pause
+    exit /b 1
 )
+echo Frontend construido.
 
 echo.
-echo ========================================
-echo  INSTALACAO CONCLUIDA!
-echo ========================================
-echo.
-echo O sistema foi instalado com sucesso!
+echo ==================================================
+echo  Instalacao Concluida!
+echo ==================================================
 echo.
 echo Para iniciar o sistema:
-echo 1. Execute 'start-system.bat' para iniciar tudo automaticamente
-echo    OU
-echo 2. Execute manualmente:
-echo    - Backend: execute 'start-backend.bat' na pasta backend
-echo    - Frontend: execute 'start-frontend.bat' na pasta raiz
+echo 1. Abra um novo terminal e navegue ate a pasta 'backend'.
+echo    Execute: npm start
+echo 2. Abra outro terminal e navegue ate a pasta raiz do projeto.
+echo    Defina a variavel de ambiente NEXT_PUBLIC_API_URL:
+echo    set NEXT_PUBLIC_API_URL=http://localhost:3001/api (Windows CMD)
+echo    $env:NEXT_PUBLIC_API_URL="http://localhost:3001/api" (Windows PowerShell)
+echo    export NEXT_PUBLIC_API_URL=http://localhost:3001/api (Linux/macOS)
+echo    Execute: npm start
 echo.
-echo Acesso ao sistema:
-echo - Frontend: http://localhost:3000
-echo - Backend API: http://localhost:3001/api/status
+echo Alternativamente, use Docker Compose para iniciar ambos os servicos:
+echo    docker compose up --build -d
 echo.
-echo Para acessar de outros dispositivos na rede:
-echo - Substitua 'localhost' pelo IP deste computador
-echo - Exemplo: http://192.168.1.100:3000
+echo O frontend estara disponivel em http://localhost:3000
+echo O backend estara disponivel em http://localhost:3001
 echo.
 pause

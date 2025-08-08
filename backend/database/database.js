@@ -1,127 +1,151 @@
+// backend/database/database.js
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 
-const DB_PATH = process.env.NODE_ENV === 'test' ? ':memory:' : path.join(__dirname, '..', 'database.db');
+const DB_PATH = process.env.NODE_ENV === 'test' ? ':memory:' : path.join(__dirname, 'database.sqlite');
 
-let db = null;
+let dbInstance = null; // Esta variável irá armazenar a instância única do banco de dados
 
-function connectDb() {
-    if (db) {
-        return db; // Retorna a instância existente se já estiver conectada
+class Database {
+  constructor() {
+    // Se já existe uma instância, retorna a existente (padrão Singleton)
+    if (dbInstance) {
+      return dbInstance;
     }
 
-    db = new sqlite3.Database(DB_PATH, (err) => {
-        if (err) {
-            console.error('Erro ao conectar ao banco de dados SQLite:', err.message);
-            process.exit(1); // Sai do processo em caso de erro crítico
-        } else {
-            console.log(`Conectado ao banco de dados SQLite em: ${DB_PATH}`);
-            initializeTables(); // Garante que as tabelas existam ao conectar
-        }
+    // Cria a conexão com o banco de dados SQLite
+    this.db = new sqlite3.Database(DB_PATH, (err) => {
+      if (err) {
+        console.error('Error connecting to database:', err.message);
+      } else {
+        console.log('Connected to the SQLite database.');
+      }
     });
-    return db;
-}
 
-function initializeTables() {
-    return new Promise((resolve, reject) => {
-        db.serialize(() => {
-            db.run(`CREATE TABLE IF NOT EXISTS professionals (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL UNIQUE,
-                defaultHours INTEGER,
-                color TEXT
-            )`, (err) => {
-                if (err) {
-                    console.error("Erro ao criar tabela professionals:", err.message);
-                    reject(err);
-                } else {
-                    console.log("Tabela 'professionals' verificada/criada.");
-                }
-            });
-
-            db.run(`CREATE TABLE IF NOT EXISTS schedules (
-                year INTEGER NOT NULL,
-                month INTEGER NOT NULL,
-                data TEXT NOT NULL,
-                PRIMARY KEY (year, month)
-            )`, (err) => {
-                if (err) {
-                    console.error("Erro ao criar tabela schedules:", err.message);
-                    reject(err);
-                } else {
-                    console.log("Tabela 'schedules' verificada/criada.");
-                }
-            });
-
-            db.run(`CREATE TABLE IF NOT EXISTS history (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                year INTEGER NOT NULL,
-                month INTEGER NOT NULL,
-                monthYear TEXT NOT NULL,
-                scheduleData TEXT NOT NULL,
-                summaryData TEXT NOT NULL,
-                companyName TEXT,
-                departmentName TEXT,
-                systemName TEXT,
-                savedAt TEXT NOT NULL
-            )`, (err) => {
-                if (err) {
-                    console.error("Erro ao criar tabela history:", err.message);
-                    reject(err);
-                } else {
-                    console.log("Tabela 'history' verificada/criada.");
-                }
-            });
-
-            db.run(`CREATE TABLE IF NOT EXISTS config (
-                id INTEGER PRIMARY KEY,
-                companyName TEXT,
-                departmentName TEXT,
-                systemName TEXT
-            )`, (err) => {
-                if (err) {
-                    console.error("Erro ao criar tabela config:", err.message);
-                    reject(err);
-                } else {
-                    console.log("Tabela 'config' verificada/criada.");
-                    // Insere uma configuração padrão se não existir
-                    db.run(`INSERT OR IGNORE INTO config (id, companyName, departmentName, systemName) VALUES (1, 'Minha Empresa', 'TI', 'Sistema de Escala')`, (err) => {
-                        if (err) {
-                            console.error("Erro ao inserir config padrão:", err.message);
-                            reject(err);
-                        } else {
-                            console.log("Configuração padrão verificada/inserida.");
-                            resolve();
-                        }
-                    });
-                }
-            });
+    // Promisifica os métodos principais do sqlite3 para usar async/await
+    this.run = (sql, params = []) => {
+      return new Promise((resolve, reject) => {
+        this.db.run(sql, params, function(err) {
+          if (err) {
+            reject(err);
+          } else {
+            resolve({ id: this.lastID, changes: this.changes });
+          }
         });
-    });
-}
+      });
+    };
 
-function closeDb() {
-    return new Promise((resolve, reject) => {
-        if (db) {
-            db.close((err) => {
-                if (err) {
-                    console.error('Erro ao fechar o banco de dados:', err.message);
-                    reject(err);
-                } else {
-                    console.log('Conexão com o banco de dados fechada.');
-                    db = null; // Limpa a instância
-                    resolve();
-                }
-            });
+    this.get = (sql, params = []) => {
+      return new Promise((resolve, reject) => {
+        this.db.get(sql, params, (err, row) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(row);
+          }
+        });
+      });
+    };
+
+    this.all = (sql, params = []) => {
+      return new Promise((resolve, reject) => {
+        this.db.all(sql, params, (err, rows) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(rows);
+          }
+        });
+      });
+    };
+
+    // Método para fechar a conexão do banco de dados
+    this.close = () => {
+      return new Promise((resolve, reject) => {
+        if (this.db) {
+          this.db.close((err) => {
+            if (err) {
+              reject(err);
+            } else {
+              console.log('Conexão com banco de dados fechada.');
+              dbInstance = null; // Limpa a instância única ao fechar
+              resolve();
+            }
+          });
         } else {
-            resolve(); // Já está fechado ou nunca foi aberto
+          resolve();
         }
-    });
+      });
+    };
+
+    // Método para inicializar as tabelas do banco de dados
+    this.initializeTables = async () => {
+      try {
+        await this.run(`
+          CREATE TABLE IF NOT EXISTS professionals (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            color TEXT NOT NULL,
+            default_hours INTEGER DEFAULT 12,
+            phone TEXT, -- Novo campo telefone
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+          )
+        `);
+        
+        // Adicionar coluna phone se não existir (para bancos existentes)
+        try {
+          await this.run(`ALTER TABLE professionals ADD COLUMN phone TEXT`);
+        } catch (err) {
+          // Coluna já existe, ignorar erro
+        }
+        
+        await this.run(`
+          CREATE TABLE IF NOT EXISTS schedule_entries (
+            id TEXT PRIMARY KEY,
+            date TEXT NOT NULL UNIQUE,
+            professional_id TEXT NOT NULL,
+            hours INTEGER NOT NULL,
+            observation TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (professional_id) REFERENCES professionals(id) ON DELETE CASCADE
+          )
+        `);
+        await this.run(`
+          CREATE TABLE IF NOT EXISTS history (
+            id TEXT PRIMARY KEY,
+            month_year TEXT NOT NULL UNIQUE,
+            schedule_data TEXT NOT NULL, -- Armazenando como string JSON
+            professionals_data TEXT NOT NULL, -- Armazenando como string JSON
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+          )
+        `);
+        await this.run(`
+          CREATE TABLE IF NOT EXISTS config (
+            id TEXT PRIMARY KEY DEFAULT 'app_config',
+            company_name TEXT DEFAULT 'Nome da Empresa',
+            department_name TEXT DEFAULT 'Nome do Departamento',
+            system_title TEXT DEFAULT 'Título do Sistema',
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+          )
+        `);
+        await this.run(`
+          INSERT OR IGNORE INTO config (id, company_name, department_name, system_title) 
+          VALUES (?, ?, ?, ?)
+        `, ['app_config', 'SECRETARIA MUNICIPAL DE SAÚDE DE CHAPADÃO DO CÉU', 'DEPARTAMENTO DE INFORMÁTICA', 'Sistema de Escala de Sobreaviso - TI']);
+
+        console.log('Tabelas inicializadas com sucesso!');
+      } catch (error) {
+        console.error('Erro ao inicializar tabelas:', error);
+        throw error;
+      }
+    };
+
+    dbInstance = this; // Define esta instância como a única
+  }
 }
 
-// Exporta a instância única do banco de dados e as funções
-module.exports = {
-    get db() { return connectDb(); }, // Getter para garantir que a conexão seja estabelecida na primeira vez que 'db' for acessado
-    initializeTables,
-    close: closeDb
-};
+// Exporta a instância única da classe Database
+module.exports = new Database();

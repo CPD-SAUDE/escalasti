@@ -1,63 +1,45 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Badge } from '@/components/ui/badge'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { useEffect, useState } from 'react'
 import { CircleCheck, CircleX, Loader2 } from 'lucide-react'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip'
 
-export function ApiStatus() {
-  const [status, setStatus] = useState<'loading' | 'online' | 'offline'>('loading')
+export default function ApiStatus() {
+  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
   const [message, setMessage] = useState('Verificando status da API...')
 
   useEffect(() => {
     const checkApiStatus = async () => {
       try {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'
-        const response = await fetch(`${apiUrl}/status`)
+        const response = await fetch(apiUrl.replace('/api', '/')) // Acessa a rota raiz do backend
         if (response.ok) {
-          const data = await response.json()
-          setStatus('online')
-          setMessage(data.message || 'API Online')
+          setStatus('success')
+          setMessage('API online')
         } else {
-          setStatus('offline')
-          setMessage('API Offline: Erro ao conectar ou resposta inesperada.')
+          setStatus('error')
+          setMessage(`API offline: ${response.status} ${response.statusText}`)
         }
-      } catch (error) {
-        setStatus('offline')
-        setMessage('API Offline: Não foi possível conectar ao servidor.')
-        console.error('Erro ao verificar status da API:', error)
+      } catch (error: any) {
+        setStatus('error')
+        setMessage(`API offline: ${error.message}`)
       }
     }
 
     checkApiStatus()
-    const interval = setInterval(checkApiStatus, 30000); // Verifica a cada 30 segundos
+    const interval = setInterval(checkApiStatus, 10000) // Verifica a cada 10 segundos
 
-    return () => clearInterval(interval);
+    return () => clearInterval(interval)
   }, [])
 
-  const getStatusIcon = () => {
+  const getIcon = () => {
     switch (status) {
       case 'loading':
-        return <Loader2 className="h-4 w-4 animate-spin" />
-      case 'online':
-        return <CircleCheck className="h-4 w-4" />
-      case 'offline':
-        return <CircleX className="h-4 w-4" />
-      default:
-        return null
-    }
-  }
-
-  const getStatusColor = () => {
-    switch (status) {
-      case 'loading':
-        return 'bg-yellow-500 hover:bg-yellow-500/80'
-      case 'online':
-        return 'bg-green-500 hover:bg-green-500/80'
-      case 'offline':
-        return 'bg-red-500 hover:bg-red-500/80'
-      default:
-        return ''
+        return <Loader2 className="h-4 w-4 animate-spin text-gray-500" />
+      case 'success':
+        return <CircleCheck className="h-4 w-4 text-green-500" />
+      case 'error':
+        return <CircleX className="h-4 w-4 text-red-500" />
     }
   }
 
@@ -65,10 +47,10 @@ export function ApiStatus() {
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <Badge className={`flex items-center gap-1 ${getStatusColor()}`}>
-            {getStatusIcon()}
-            {status === 'loading' ? 'Verificando...' : status === 'online' ? 'Online' : 'Offline'}
-          </Badge>
+          <div className="flex items-center gap-2">
+            {getIcon()}
+            <span className="sr-only">{message}</span>
+          </div>
         </TooltipTrigger>
         <TooltipContent>
           <p>{message}</p>

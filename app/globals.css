@@ -30,7 +30,7 @@
 
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --ring: 222.2 47.4% 11.2%;
 
     --radius: 0.5rem;
   }
@@ -130,11 +130,11 @@
     color: black !important; /* Garante que o cabeçalho seja preto */
     line-height: 1.1; /* Ajusta a altura da linha */
   }
-  .print-header.sub-header { /* Segundo título (departamento) */
+  .print-header.sub-header {
     font-size: 0.75rem !important;
     margin-bottom: 0.08rem !important;
   }
-  .print-header.system-title { /* Título do sistema */
+  .print-header.system-title {
     font-size: 0.65rem !important;
     margin-top: 0.05rem !important;
   }

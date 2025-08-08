@@ -7,15 +7,15 @@ const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: 'Sistema de Escala de Sobreaviso',
-  description: 'Gerenciamento de escalas de sobreaviso',
+  description: 'Sistema para gerenciar escalas de sobreaviso de profissionais.',
     generator: 'v0.dev'
 }
 
 export default function RootLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode
-}) {
+}>) {
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <body className={inter.className}>

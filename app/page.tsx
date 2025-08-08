@@ -27,10 +27,10 @@ import Image from "next/image";
 
 export default function Home() {
   const [activeProfessionalIds, setActiveProfessionalIds] = useState<string[]>([]);
-  const [currentDate, setCurrentDate] = useState<Date>(new Date());
+  const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [isPrintPreviewActive, setIsPrintPreviewActive] = useState(false); // Renamed state
 
-  const [isViewingHistory, setIsViewingHistory] = useState(false);
+  const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
   const [historicalProfessionals, setHistoricalProfessionals] = useState<Professional[] | null>(null);
   const [historicalScheduleEntries, setHistoricalScheduleEntries] = useState<ScheduleEntryWithProfessional[] | null>(null);
   const [historicalMonthYear, setHistoricalMonthYear] = useState<string | null>(null);
@@ -38,13 +38,35 @@ export default function Home() {
   const [scheduleGenerationMode, setScheduleGenerationMode] = useState<'daily' | 'weekly'>('daily');
   const [startingProfessionalId, setStartingProfessionalId] = useState<string | null>(null);
 
-  const currentYear = currentDate.getFullYear();
-  const currentMonth = currentDate.getMonth() + 1;
+  const { config, isLoading: isLoadingConfig, error: errorConfig } = useConfig();
+  const {
+    professionals,
+    addProfessional,
+    updateProfessional,
+    deleteProfessional,
+    isLoading: isLoadingProfessionals,
+    error: errorProfessionals,
+  } = useProfessionals();
+  const {
+    schedule,
+    updateSchedule,
+    isLoading: isLoadingSchedule,
+    error: errorSchedule,
+  } = useSchedule(currentMonth.getFullYear(), currentMonth.getMonth() + 1);
+  const {
+    history,
+    isLoading: isLoadingHistory,
+    error: errorHistory,
+    fetchHistory,
+  } = useHistory();
 
-  const { professionals, loading: professionalsLoading, error: professionalsError } = useProfessionals();
-  const { scheduleEntries, loading: scheduleLoading, error: scheduleError, createOrUpdateEntry, deleteEntry, clearMonth, refetch: refetchSchedule } = useSchedule(currentYear, currentMonth);
-  const { history, loading: historyLoading, saveToHistory } = useHistory();
-  const { config } = useConfig();
+  const isLoading =
+    isLoadingConfig ||
+    isLoadingProfessionals ||
+    isLoadingSchedule ||
+    isLoadingHistory;
+  const error =
+    errorConfig || errorProfessionals || errorSchedule || errorHistory;
 
   useEffect(() => {
     if (professionals.length > 0 && activeProfessionalIds.length === 0) {
@@ -89,48 +111,39 @@ export default function Home() {
 
   const handleUpdateScheduleEntry = async (entry: Omit<ScheduleEntry, 'id' | 'created_at' | 'updated_at'>) => {
     try {
-      await createOrUpdateEntry(entry);
+      await updateSchedule(entry);
     } catch (error) {
-        console.error('Erro ao atualizar entrada:', error);
+      console.error('Erro ao atualizar entrada:', error);
     }
   };
 
   const handleDeleteScheduleEntry = async (date: string) => {
     try {
-      await deleteEntry(date);
+      await updateSchedule({ date });
     } catch (error) {
-        console.error('Erro ao deletar entrada:', error);
+      console.error('Erro ao deletar entrada:', error);
     }
   };
 
   const handlePrevMonth = async () => {
-    setIsViewingHistory(false);
-    setCurrentDate(prev => subMonths(prev, 1));
+    setCurrentMonth(prev => subMonths(prev, 1));
   };
 
   const handleNextMonth = async () => {
-    setIsViewingHistory(false);
-    setCurrentDate(prev => addMonths(prev, 1));
+    setCurrentMonth(prev => addMonths(prev, 1));
   };
 
   const handleGoToMonth = (date: Date) => {
-    setIsViewingHistory(false);
-    setCurrentDate(date);
+    setCurrentMonth(date);
   };
 
   const handleGoToCurrentMonth = () => {
-    setIsViewingHistory(false);
-    setCurrentDate(new Date());
+    setCurrentMonth(new Date());
   };
 
   const generateAutomaticSchedule = async () => {
-    if (isViewingHistory) {
-      alert("Não é possível gerar escala automática no modo de visualização de histórico. Volte para a escala atual.");
-      return;
-    }
-
-    const start = startOfMonth(currentDate);
-    const end = endOfMonth(currentDate);
+    const start = startOfMonth(currentMonth);
+    const end = endOfMonth(currentMonth);
     const daysInMonth = eachDayOfInterval({ start, end });
 
     const activeProfessionals = professionals.filter(p => activeProfessionalIds.includes(p.id));
@@ -139,7 +152,7 @@ export default function Home() {
       alert("Por favor, adicione e selecione pelo menos um profissional para gerar a escala automática.");
       return;
     }
-    
+
     let initialProfessionalIndex = 0;
     if (startingProfessionalId) {
       const foundIndex = activeProfessionals.findIndex(p => p.id === startingProfessionalId);
@@ -149,8 +162,6 @@ export default function Home() {
     }
 
     try {
-      await clearMonth(currentYear, currentMonth);
-      
       let professionalIndex = initialProfessionalIndex;
       let currentProfessionalForWeek: Professional | null = null;
       let lastProcessedWeek: number | null = null;
@@ -160,29 +171,26 @@ export default function Home() {
 
         if (scheduleGenerationMode === 'daily') {
           assignedProfessional = activeProfessionals[professionalIndex];
-          professionalIndex = (professionalIndex + 1) % activeProfessionalIds.length;
+          professionalIndex = (professionalIndex + 1) % activeProfessionals.length;
         } else {
-          const currentWeekNumber = getWeek(day, { locale: ptBR, weekStartsOn: 1 }); 
+          const currentWeekNumber = getWeek(day, { locale: ptBR, weekStartsOn: 1 });
 
           if (lastProcessedWeek === null || currentWeekNumber !== lastProcessedWeek) {
             currentProfessionalForWeek = activeProfessionals[professionalIndex];
-            professionalIndex = (professionalIndex + 1) % activeProfessionalIds.length;
+            professionalIndex = (professionalIndex + 1) % activeProfessionals.length;
             lastProcessedWeek = currentWeekNumber;
           }
           assignedProfessional = currentProfessionalForWeek!;
         }
 
-        await createOrUpdateEntry({
+        await updateSchedule({
           date: format(day, "yyyy-MM-dd"),
           professionalId: assignedProfessional.id,
           hours: assignedProfessional.default_hours || 12,
           observation: undefined,
         });
       }
-      
-      // ADICIONAR ESTA LINHA para atualizar o calendário
-      await refetchSchedule();
-      
+
       alert("Escala automática gerada com sucesso!");
     } catch (error) {
       console.error('Erro ao gerar escala automática:', error);
@@ -191,28 +199,23 @@ export default function Home() {
   };
 
   const createScheduleRecord = async () => {
-    if (isViewingHistory) {
-      alert("Não é possível salvar histórico no modo de visualização de histórico. Volte para a escala atual.");
-      return;
-    }
+    const monthYear = format(currentMonth, "yyyy-MM");
 
-    const monthYear = format(currentDate, "yyyy-MM");
-    
     try {
-      const scheduleData: ScheduleEntry[] = scheduleEntries.map(entry => ({
+      const scheduleData: ScheduleEntry[] = schedule.map(entry => ({
         date: entry.date,
         professionalId: entry.professional_id,
         hours: entry.hours,
         observation: entry.observation,
       }));
 
-      await saveToHistory({
+      await fetchHistory({
         month_year: monthYear,
         schedule_data: scheduleData,
         professionals_data: professionals,
       });
-      
-      alert(`Escala para ${format(currentDate, "MMMM 'de' yyyy", { locale: ptBR })} salva no histórico!`);
+
+      alert(`Escala para ${format(currentMonth, "MMMM 'de' yyyy", { locale: ptBR })} salva no histórico!`);
     } catch (error) {
       console.error('Erro ao salvar no histórico:', error);
       alert("Erro ao salvar no histórico. Tente novamente.");
@@ -220,10 +223,9 @@ export default function Home() {
   };
 
   const loadHistoricalSchedule = (record: any) => {
-    setIsViewingHistory(true);
-    setCurrentDate(parseISO(record.month_year + "-01"));
+    setCurrentMonth(parseISO(record.month_year + "-01"));
     setHistoricalProfessionals(record.professionals_data);
-    
+
     const entriesWithProfessional: ScheduleEntryWithProfessional[] = record.schedule_data.map((entry: any) => {
       const prof = record.professionals_data.find((p: any) => p.id === entry.professionalId);
       return {
@@ -238,31 +240,25 @@ export default function Home() {
     alert(`Escala de ${format(parseISO(record.month_year + "-01"), "MMMM 'de' yyyy", { locale: ptBR })} carregada para visualização.`);
   };
 
-  const handleReturnToCurrentSchedule = () => {
-    setIsViewingHistory(false);
-    setHistoricalProfessionals(null);
-    setHistoricalScheduleEntries(null);
-    setHistoricalMonthYear(null);
-    setCurrentDate(new Date());
-    refetchSchedule();
+  const handleOpenHistoryDialog = () => {
+    fetchHistory();
+    setIsHistoryDialogOpen(true);
   };
 
-  // New function for print preview
   const handlePrintPreview = () => {
     setIsPrintPreviewActive(true);
   };
 
-  // New function to exit print preview
   const handleExitPrintPreview = () => {
     setIsPrintPreviewActive(false);
   };
 
-  const displayedProfessionals = isViewingHistory ? historicalProfessionals || [] : professionals;
-  const displayedScheduleEntries = isViewingHistory ? historicalScheduleEntries || [] : scheduleEntries;
+  const displayedProfessionals = professionals;
+  const displayedScheduleEntries = schedule;
 
   const professionalHoursSummary = useMemo(() => {
     const summary: { [key: string]: number } = {};
-    const currentMonthYearFormatted = format(currentDate, "yyyy-MM");
+    const currentMonthYearFormatted = format(currentMonth, "yyyy-MM");
 
     displayedScheduleEntries.forEach(entry => {
       const entryMonthYear = format(parseISO(entry.date), "yyyy-MM");
@@ -271,9 +267,9 @@ export default function Home() {
       }
     });
     return summary;
-  }, [displayedScheduleEntries, currentDate]);
+  }, [displayedScheduleEntries, currentMonth]);
 
-  if (professionalsLoading || scheduleLoading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -289,40 +285,51 @@ export default function Home() {
       {/* Main content, hidden when in print preview */}
       <div className={cn("container mx-auto py-8", isPrintPreviewActive && "hidden")}>
         {/* Cabeçalho com logo */}
-        <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-50">
-            Sistema de Escala de Sobreaviso
-          </h1>
-          <div className="flex items-center gap-4">
-            <ApiStatus />
-            <HistoryDialog history={history} onLoadHistory={loadHistoricalSchedule} loading={historyLoading} />
+        <div className="flex flex-col items-center justify-center mb-6">
+          <div className="w-40 h-auto mb-2">
+            <Image 
+              src="/images/logo.png" 
+              alt="Logo Chapadão do Céu" 
+              width={160} 
+              height={100} 
+              priority
+            />
           </div>
+          <h1 className="text-2xl font-bold text-center">SECRETARIA MUNICIPAL DE SAÚDE DE CHAPADÃO DO CÉU</h1>
+          <h2 className="text-xl font-semibold text-center">DEPARTAMENTO DE INFORMÁTICA</h2>
+          <h3 className="text-lg mt-4">Sistema de Escala de Sobreaviso - TI</h3>
         </div>
 
+        <ApiStatus />
+
+        {error && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertDescription>
+              {error.message}
+            </AlertDescription>
+          </Alert>
+        )}
+
         <Tabs defaultValue="schedule" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 md:w-[400px] mx-auto">
-            <TabsTrigger value="schedule">Escala</TabsTrigger>
-            <TabsTrigger value="professionals">Profissionais</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 mb-6">
+            <TabsTrigger value="schedule">Gerenciar Escala</TabsTrigger>
+            <TabsTrigger value="summary">Resumo da Escala</TabsTrigger>
+            <TabsTrigger value="professionals">Gerenciar Profissionais</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="schedule" className="mt-6">
+          <TabsContent value="schedule" className="mt-4">
             <Card>
               <CardHeader>
                 <CardTitle className="flex justify-between items-center">
                   <MonthSelector
-                    currentDate={currentDate}
+                    currentMonth={currentMonth}
                     onPrevMonth={handlePrevMonth}
                     onNextMonth={handleNextMonth}
                     onGoToMonth={handleGoToMonth}
                     onGoToCurrentMonth={handleGoToCurrentMonth}
                   />
                   <div className="flex space-x-2">
-                    {isViewingHistory && (
-                      <Button onClick={handleReturnToCurrentSchedule} variant="outline">
-                        <History className="h-4 w-4 mr-2" /> Voltar para Escala Atual
-                      </Button>
-                    )}
-                    <Select value={scheduleGenerationMode} onValueChange={(value: 'daily' | 'weekly') => setScheduleGenerationMode(value)} disabled={isViewingHistory}>
+                    <Select value={scheduleGenerationMode} onValueChange={(value: 'daily' | 'weekly') => setScheduleGenerationMode(value)}>
                       <SelectTrigger className="w-[180px]">
                         <SelectValue placeholder="Modo de Geração" />
                       </SelectTrigger>
@@ -335,7 +342,7 @@ export default function Home() {
                     <Select
                       value={startingProfessionalId || ''}
                       onValueChange={setStartingProfessionalId}
-                      disabled={isViewingHistory || activeProfessionalIds.length === 0}
+                      disabled={activeProfessionalIds.length === 0}
                     >
                       <SelectTrigger className="w-[180px]">
                         <SelectValue placeholder="Começar com..." />
@@ -353,9 +360,9 @@ export default function Home() {
                     </Select>
                     <Button 
                       onClick={generateAutomaticSchedule} 
-                      disabled={activeProfessionalIds.length === 0 || scheduleLoading || isViewingHistory || !startingProfessionalId}
+                      disabled={activeProfessionalIds.length === 0 || isLoadingSchedule || !startingProfessionalId}
                     >
-                      {scheduleLoading ? (
+                      {isLoadingSchedule ? (
                         <>
                           <Loader2 className="h-4 w-4 animate-spin mr-2" />
                           Gerando...
@@ -366,9 +373,9 @@ export default function Home() {
                     </Button>
                     <Button 
                       onClick={createScheduleRecord}
-                      disabled={scheduleEntries.length === 0 || historyLoading || isViewingHistory}
+                      disabled={schedule.length === 0 || isLoadingHistory}
                     >
-                      {historyLoading ? (
+                      {isLoadingHistory ? (
                         <>
                           <Loader2 className="h-4 w-4 animate-spin mr-2" />
                           Salvando...
@@ -376,6 +383,10 @@ export default function Home() {
                       ) : (
                         'Criar Registro de Escala'
                       )}
+                    </Button>
+                    <Button onClick={handleOpenHistoryDialog} variant="outline" size="sm">
+                      <History className="mr-2 h-4 w-4" />
+                      Histórico
                     </Button>
                     <Button onClick={handlePrintPreview}> {/* Changed to handlePrintPreview */}
                       Visualizar Impressão
@@ -385,12 +396,12 @@ export default function Home() {
               </CardHeader>
               <CardContent>
                 <ScheduleCalendar
-                  currentDate={currentDate}
+                  year={currentMonth.getFullYear()}
+                  month={currentMonth.getMonth() + 1}
                   professionals={displayedProfessionals}
                   scheduleEntries={displayedScheduleEntries}
                   onUpdateEntry={handleUpdateScheduleEntry}
                   onDeleteEntry={handleDeleteScheduleEntry}
-                  isReadOnly={isViewingHistory}
                 />
                 <ScheduleSummary
                   professionals={displayedProfessionals}
@@ -400,18 +411,22 @@ export default function Home() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="professionals" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Gerenciar Profissionais</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ProfessionalManagement
-                  activeProfessionalIds={activeProfessionalIds}
-                  onToggleProfessionalActive={handleToggleProfessionalActive}
-                />
-              </CardContent>
-            </Card>
+          <TabsContent value="summary" className="mt-4">
+            <ScheduleSummary
+              schedule={displayedScheduleEntries}
+              professionals={displayedProfessionals}
+            />
+          </TabsContent>
+
+          <TabsContent value="professionals" className="mt-4">
+            <ProfessionalManagement
+              professionals={displayedProfessionals}
+              addProfessional={addProfessional}
+              updateProfessional={updateProfessional}
+              deleteProfessional={deleteProfessional}
+              activeProfessionalIds={activeProfessionalIds}
+              onToggleProfessionalActive={handleToggleProfessionalActive}
+            />
           </TabsContent>
         </Tabs>
       </div>
@@ -420,7 +435,7 @@ export default function Home() {
       {isPrintPreviewActive && (
         <div className="p-8 print-scale-container-preview"> {/* New class for preview container */}
           {/* Cabeçalho para impressão */}
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+          <div className="flex flex-col items-center mb-4 print-header-container-preview"> {/* New class */}
             <div className="flex-shrink-0">
               <Image 
                 src="/images/logo.png" 
@@ -435,12 +450,13 @@ export default function Home() {
               <h1 className="font-bold print-header-preview">SECRETARIA MUNICIPAL DE SAÚDE DE CHAPADÃO DO CÉU</h1> {/* New class */}
               <h2 className="font-semibold print-header-preview sub-header-preview">DEPARTAMENTO DE INFORMÁTICA</h2> {/* New class */}
               <h3 className="print-header-preview system-title-preview"> {/* New class */}
-                Escala de Sobreaviso - {format(currentDate, "MMMM 'de' yyyy", { locale: ptBR })}
+                Escala de Sobreaviso - {format(currentMonth, "MMMM 'de' yyyy", { locale: ptBR })}
               </h3>
             </div>
           </div>
           <ScheduleCalendar
-            currentDate={currentDate}
+            year={currentMonth.getFullYear()}
+            month={currentMonth.getMonth() + 1}
             professionals={displayedProfessionals}
             scheduleEntries={displayedScheduleEntries}
             onUpdateEntry={async () => {}}
@@ -448,8 +464,8 @@ export default function Home() {
             isPrintMode={true} // Keep this true to apply print-specific logic within calendar/summary components
           />
           <ScheduleSummary
+            schedule={displayedScheduleEntries}
             professionals={displayedProfessionals}
-            hoursSummary={professionalHoursSummary}
             isPrintMode={true} // Keep this true to apply print-specific logic within calendar/summary components
           />
           <footer className="py-2 text-center text-xs text-muted-foreground print-footer-preview"> {/* New class */}
@@ -461,6 +477,14 @@ export default function Home() {
           </div>
         </div>
       )}
+      <HistoryDialog
+        isOpen={isHistoryDialogOpen}
+        onClose={() => setIsHistoryDialogOpen(false)}
+        history={history}
+        isLoading={isLoadingHistory}
+        error={errorHistory}
+        onLoadHistory={loadHistoricalSchedule}
+      />
     </div>
   );
 }

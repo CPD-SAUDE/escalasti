@@ -1,177 +1,169 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
-import { useSchedule } from '@/hooks/use-schedule'
-import { useProfessionals } from '@/hooks/use-professionals'
-import { ScheduleEntry, Professional } from '@/lib/types'
-import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Textarea } from '@/components/ui/textarea'
-import { Label } from '@/components/ui/label'
+import { useState } from 'react'
+import {
+  eachDayOfInterval,
+  endOfMonth,
+  format,
+  getDay,
+  isSameDay,
+  startOfMonth,
+} from 'date-fns'
+import { ptBR } from 'date-fns/locale'
+import { Professional, ScheduleData } from '@/lib/types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
-import { Loader2, Save } from 'lucide-react'
-import { toast } from 'sonner'
-import { api } from '@/lib/api'
+import { cn } from '@/lib/utils'
+import { Alert, AlertDescription, AlertTitle } from './ui/alert'
 
-export function ScheduleCalendar() {
-  const { schedule, setSchedule, currentMonth, currentYear, loading, error } = useSchedule()
-  const { professionals, loading: professionalsLoading } = useProfessionals()
-  const [saving, setSaving] = useState(false)
+interface ScheduleCalendarProps {
+  year: number
+  month: number
+  schedule: ScheduleData
+  professionals: Professional[]
+  updateSchedule: (
+    year: number,
+    month: number,
+    data: ScheduleData,
+  ) => Promise<void>
+}
 
-  const daysInMonth = new Date(currentYear, currentMonth, 0).getDate()
-  const firstDayOfMonth = new Date(currentYear, currentMonth - 1, 1).getDay() // 0 for Sunday, 1 for Monday
+export default function ScheduleCalendar({
+  year,
+  month,
+  schedule,
+  professionals,
+  updateSchedule,
+}: ScheduleCalendarProps) {
+  const firstDayOfMonth = startOfMonth(new Date(year, month - 1))
+  const lastDayOfMonth = endOfMonth(new Date(year, month - 1))
+  const daysInMonth = eachDayOfInterval({
+    start: firstDayOfMonth,
+    end: lastDayOfMonth,
+  })
 
-  const handleProfessionalChange = useCallback((day: number, professionalId: string) => {
-    setSchedule(prevSchedule => {
-      const newSchedule = [...prevSchedule]
-      const index = newSchedule.findIndex(entry => entry.day === day)
-      if (index !== -1) {
-        newSchedule[index].professionalId = professionalId === 'null' ? null : parseInt(professionalId)
-      } else {
-        newSchedule.push({ day, professionalId: parseInt(professionalId), hours: null, notes: '' })
-      }
-      return newSchedule
-    })
-  }, [setSchedule])
+  const startingDayIndex = getDay(firstDayOfMonth) // 0 for Sunday, 1 for Monday...
 
-  const handleHoursChange = useCallback((day: number, hours: string) => {
-    setSchedule(prevSchedule => {
-      const newSchedule = [...prevSchedule]
-      const index = newSchedule.findIndex(entry => entry.day === day)
-      if (index !== -1) {
-        newSchedule[index].hours = parseInt(hours) || null
-      } else {
-        newSchedule.push({ day, professionalId: null, hours: parseInt(hours), notes: '' })
-      }
-      return newSchedule
-    })
-  }, [setSchedule])
+  const [currentSchedule, setCurrentSchedule] =
+    useState<ScheduleData>(schedule)
+  const [isSaving, setIsSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const [saveSuccess, setSaveSuccess] = useState<string | null>(null)
 
-  const handleNotesChange = useCallback((day: number, notes: string) => {
-    setSchedule(prevSchedule => {
-      const newSchedule = [...prevSchedule]
-      const index = newSchedule.findIndex(entry => entry.day === day)
-      if (index !== -1) {
-        newSchedule[index].notes = notes
-      } else {
-        newSchedule.push({ day, professionalId: null, hours: null, notes: notes })
-      }
-      return newSchedule
-    })
-  }, [setSchedule])
-
-  const getScheduleEntry = useCallback((day: number): ScheduleEntry | undefined => {
-    return schedule.find(entry => entry.day === day)
+  // Update internal state when external schedule prop changes
+  // This is important if the schedule is fetched asynchronously
+  useState(() => {
+    setCurrentSchedule(schedule)
   }, [schedule])
 
+  const handleProfessionalChange = (day: number, professionalId: string) => {
+    setCurrentSchedule((prev) => ({
+      ...prev,
+      [day]: professionalId === 'none' ? null : parseInt(professionalId),
+    }))
+    setSaveSuccess(null) // Clear success message on change
+  }
+
   const handleSaveSchedule = async () => {
-    setSaving(true)
+    setIsSaving(true)
+    setSaveError(null)
+    setSaveSuccess(null)
     try {
-      await api.post('/schedule', {
-        year: currentYear,
-        month: currentMonth,
-        scheduleData: schedule,
-      })
-      toast.success('Escala salva com sucesso!')
-    } catch (error) {
-      console.error('Erro ao salvar escala:', error)
-      toast.error('Erro ao salvar escala.')
+      await updateSchedule(year, month, currentSchedule)
+      setSaveSuccess('Escala salva com sucesso!')
+    } catch (err: any) {
+      setSaveError(err.message || 'Erro ao salvar a escala.')
     } finally {
-      setSaving(false)
+      setIsSaving(false)
     }
   }
 
-  if (loading || professionalsLoading) {
-    return (
-      <div className="flex justify-center items-center h-96">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <span className="ml-4 text-lg">Carregando escala...</span>
-      </div>
-    )
+  const getProfessionalForDay = (day: number) => {
+    const professionalId = currentSchedule[day]
+    return professionals.find((p) => p.id === professionalId)
   }
 
-  if (error) {
-    return <div className="text-red-500 text-center">Erro ao carregar escala: {error}</div>
-  }
-
-  const calendarDays = Array.from({ length: daysInMonth }, (_, i) => i + 1)
+  const weekDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-        {calendarDays.map(day => {
-          const entry = getScheduleEntry(day)
-          const selectedProfessionalId = entry?.professionalId?.toString() || 'null'
-          const selectedHours = entry?.hours?.toString() || ''
-          const notes = entry?.notes || ''
-          const professionalColor = professionals.find(p => p.id === entry?.professionalId)?.color || '#cccccc'
-
-          return (
-            <Card key={day} className="flex flex-col">
-              <CardHeader className="p-3 pb-2 flex flex-row items-center justify-between">
-                <CardTitle className="text-lg font-bold">Dia {day}</CardTitle>
-                <div className="w-4 h-4 rounded-full border" style={{ backgroundColor: professionalColor }} />
-              </CardHeader>
-              <CardContent className="p-3 pt-0 space-y-2 flex-grow">
-                <div className="space-y-1">
-                  <Label htmlFor={`professional-${day}`} className="text-xs">Profissional</Label>
-                  <Select
-                    value={selectedProfessionalId}
-                    onValueChange={(value) => handleProfessionalChange(day, value)}
-                  >
-                    <SelectTrigger id={`professional-${day}`} className="h-9 text-sm">
-                      <SelectValue placeholder="Selecione" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="null">Nenhum</SelectItem>
-                      {professionals.map(p => (
-                        <SelectItem key={p.id} value={p.id.toString()}>
-                          {p.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor={`hours-${day}`} className="text-xs">Horas</Label>
-                  <Input
-                    id={`hours-${day}`}
-                    type="number"
-                    value={selectedHours}
-                    onChange={(e) => handleHoursChange(day, e.target.value)}
-                    placeholder="Horas"
-                    className="h-9 text-sm"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor={`notes-${day}`} className="text-xs">Observações</Label>
-                  <Textarea
-                    id={`notes-${day}`}
-                    value={notes}
-                    onChange={(e) => handleNotesChange(day, e.target.value)}
-                    placeholder="Observações"
-                    className="min-h-[40px] text-sm"
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          )
-        })}
-      </div>
-      <div className="flex justify-end">
-        <Button onClick={handleSaveSchedule} disabled={saving} className="flex items-center gap-2">
-          {saving ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" /> Salvando...
-            </>
-          ) : (
-            <>
-              <Save className="h-4 w-4" /> Salvar Escala
-            </>
-          )}
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-2xl font-bold">Escala Mensal</CardTitle>
+        <Button onClick={handleSaveSchedule} disabled={isSaving}>
+          {isSaving ? 'Salvando...' : 'Salvar Escala'}
         </Button>
-      </div>
-    </div>
+      </CardHeader>
+      <CardContent>
+        {saveError && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertTitle>Erro ao Salvar</AlertTitle>
+            <AlertDescription>{saveError}</AlertDescription>
+          </Alert>
+        )}
+        {saveSuccess && (
+          <Alert className="mb-4 border-green-500 text-green-700 dark:border-green-400 dark:text-green-300">
+            <AlertTitle>Sucesso</AlertTitle>
+            <AlertDescription>{saveSuccess}</AlertDescription>
+          </Alert>
+        )}
+        <div className="grid grid-cols-7 gap-2 text-center font-semibold">
+          {weekDays.map((day) => (
+            <div key={day}>{day}</div>
+          ))}
+        </div>
+        <div className="mt-2 grid grid-cols-7 gap-2">
+          {Array.from({ length: startingDayIndex }).map((_, i) => (
+            <div key={`empty-${i}`} className="h-24 rounded-md bg-gray-100 dark:bg-gray-800" />
+          ))}
+          {daysInMonth.map((day, index) => {
+            const dayNumber = parseInt(format(day, 'd'))
+            const professional = getProfessionalForDay(dayNumber)
+
+            return (
+              <div
+                key={index}
+                className={cn(
+                  'flex flex-col rounded-md border p-2 shadow-sm',
+                  isSameDay(day, new Date()) && 'border-blue-500 ring-2 ring-blue-500',
+                )}
+              >
+                <div className="text-lg font-bold">{dayNumber}</div>
+                <Select
+                  value={professional ? String(professional.id) : 'none'}
+                  onValueChange={(value) =>
+                    handleProfessionalChange(dayNumber, value)
+                  }
+                >
+                  <SelectTrigger
+                    className="mt-1 h-auto min-h-[36px] text-xs"
+                    style={{
+                      backgroundColor: professional?.color || 'transparent',
+                      color: professional ? '#FFF' : 'inherit',
+                    }}
+                  >
+                    <SelectValue placeholder="Selecionar" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Nenhum</SelectItem>
+                    {professionals.map((p) => (
+                      <SelectItem key={p.id} value={String(p.id)}>
+                        {p.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )
+          })}
+        </div>
+      </CardContent>
+    </Card>
   )
 }

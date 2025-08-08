@@ -1,45 +1,20 @@
 @echo off
-echo ========================================
-echo  SISTEMA DE ESCALA DE SOBREAVISO
-echo  Iniciando Backend...
-echo ========================================
+echo Iniciando o backend...
 
-REM Verificar se Node.js está instalado
-node --version >nul 2>&1
-if %errorlevel% neq 0 (
-    echo ERRO: Node.js nao encontrado!
-    echo Por favor, instale o Node.js antes de continuar.
-    echo Download: https://nodejs.org/
-    pause
-    exit /b 1
-)
-
-REM Verificar se as dependências estão instaladas
-if not exist "node_modules" (
-    echo Instalando dependencias...
-    cd backend
-    npm install
-    cd ..
-    if %errorlevel% neq 0 (
-        echo ERRO: Falha ao instalar dependencias!
-        pause
-        exit /b 1
-    )
-)
-
-REM Inicializar banco de dados
-echo Inicializando banco de dados...
-npm run init-db
-if %errorlevel% neq 0 (
-    echo ERRO: Falha ao inicializar banco de dados!
-    pause
-    exit /b 1
-)
-
-REM Iniciar servidor
-echo Iniciando servidor...
+REM Navega para o diretório do backend
 cd backend
-npm start
-cd ..
 
+REM Instala as dependências (se ainda não o fez)
+echo Instalando dependências do backend...
+call npm install
+
+REM Inicializa o banco de dados (cria as tabelas se não existirem)
+echo Inicializando o banco de dados...
+call npm run init-db
+
+REM Inicia o servidor backend
+echo Iniciando o servidor backend...
+call npm start
+
+echo Backend iniciado.
 pause

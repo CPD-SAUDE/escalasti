@@ -88,3 +88,8 @@
     @apply bg-background text-foreground;
   }
 }
+
+/*
+  This file is intentionally left blank.
+  Global styles are handled by app/globals.css and Tailwind CSS.
+*/
