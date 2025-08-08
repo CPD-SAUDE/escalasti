@@ -5,49 +5,42 @@ echo  Construindo Frontend para Producao
 echo ========================================
 
 REM Verificar se Node.js está instalado
-node --version >nul 2>&1
+where node >nul 2>nul
 if %errorlevel% neq 0 (
-    echo ERRO: Node.js nao encontrado!
-    echo Por favor, instale o Node.js antes de continuar.
-    echo Download: https://nodejs.org/
+    echo ERRO: Node.js nao encontrado. Por favor, instale o Node.js (versao 18 ou superior) e o npm.
+    echo Visite https://nodejs.org/
     pause
     exit /b 1
 )
+
+REM Navega para o diretório raiz do projeto (onde o frontend esta)
+cd /d "%~dp0"
 
 REM Verificar se as dependências estão instaladas
-if not exist "node_modules" (
-    echo Instalando dependencias do frontend...
-    npm install
-    if %errorlevel% neq 0 (
-        echo ERRO: Falha ao instalar dependencias do frontend!
-        pause
-        exit /b 1
-    )
-)
+echo Verificando e instalando dependencias do frontend...
+npm install
 
 REM Obter IP da rede para configurar o .env.local antes da build
-echo Detectando IP da rede para configuracao da build...
-for /f "tokens=*" %%i in ('node backend\scripts\get-network-ip.js ^| findstr "IP Principal"') do (
-    set "LINE=%%i"
-    for /f "tokens=2 delims=:" %%j in ("!LINE!") do set LOCAL_IP=%%j
+echo Obtendo o IP da rede local...
+for /f "tokens=2 delims=:" %%a in ('ipconfig ^| findstr /i "IPv4 Address"') do (
+    set "IP_ADDRESS=%%a"
+    set "IP_ADDRESS=!IP_ADDRESS:~1!"
+    goto :found_ip
 )
-set LOCAL_IP=%LOCAL_IP: =%
-
-if "%LOCAL_IP%"=="" (
-    echo ERRO: Nao foi possivel detectar o IP local para a build.
-    echo Verifique sua conexao de rede.
-    pause
-    exit /b 1
+:found_ip
+if not defined IP_ADDRESS (
+    echo Nao foi possivel obter o IP da rede. Usando localhost.
+    set "IP_ADDRESS=localhost"
+) else (
+    echo IP da rede local detectado: %IP_ADDRESS%
 )
 
-echo IP detectado para build: %LOCAL_IP%
+REM Atualizar .env.local para a build...
+echo Atualizando .env.local com NEXT_PUBLIC_API_URL=http://%IP_ADDRESS%:3001/api
+echo NEXT_PUBLIC_API_URL=http://%IP_ADDRESS%:3001/api > .env.local
 
-echo Atualizando .env.local para a build...
-echo NEXT_PUBLIC_API_URL=http://%LOCAL_IP%:3001/api > .env.local
-echo PORT=3000 >> .env.local
-echo ✅ Arquivo .env.local atualizado para a build.
-
-echo Construindo o frontend (npm run build)...
+REM Executar o build do Next.js
+echo Executando npm run build...
 npm run build
 if %errorlevel% neq 0 (
     echo ERRO: Falha ao construir o frontend!
@@ -59,6 +52,8 @@ echo.
 echo ========================================
 echo  FRONTEND CONSTRUIDO COM SUCESSO!
 echo ========================================
+echo.
+echo Os arquivos de producao estao na pasta .next/
 echo.
 echo Agora voce pode iniciar o frontend em modo de producao:
 echo npm start

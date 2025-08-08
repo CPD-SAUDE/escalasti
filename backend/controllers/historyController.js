@@ -1,62 +1,50 @@
-// backend/controllers/historyController.js
-const db = require('../database/database'); // Importa a instância única do banco de dados
-const { v4: uuidv4 } = require('uuid');
+const db = require('../database/database');
 
-exports.getAllHistoryRecords = async (req, res) => {
-    try {
-        const rows = await db.all("SELECT * FROM history ORDER BY created_at DESC", []);
+exports.saveSchedule = (req, res) => {
+    const { year, month, scheduleData, summaryData, companyName, departmentName, systemName } = req.body;
+    const date = new Date(year, month - 1, 1); // Mês é 0-indexado no JS Date
+    const monthYear = date.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
+
+    db.run(
+        `INSERT INTO history (year, month, monthYear, scheduleData, summaryData, companyName, departmentName, systemName, savedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [year, month, monthYear, JSON.stringify(scheduleData), JSON.stringify(summaryData), companyName, departmentName, systemName, new Date().toISOString()],
+        function (err) {
+            if (err) {
+                res.status(500).json({ error: err.message });
+                return;
+            }
+            res.status(201).json({ message: 'Escala salva no histórico com sucesso', id: this.lastID });
+        }
+    );
+};
+
+exports.getHistory = (req, res) => {
+    db.all("SELECT * FROM history ORDER BY savedAt DESC", (err, rows) => {
+        if (err) {
+            res.status(500).json({ error: err.message });
+            return;
+        }
+        // Parse JSON strings back to objects
         const parsedRows = rows.map(row => ({
             ...row,
-            schedule_data: JSON.parse(row.schedule_data),
-            professionals_data: JSON.parse(row.professionals_data)
+            scheduleData: JSON.parse(row.scheduleData),
+            summaryData: JSON.parse(row.summaryData)
         }));
         res.json(parsedRows);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+    });
 };
 
-exports.saveHistoryRecord = async (req, res) => {
-    const { month_year, schedule_data, professionals_data } = req.body;
-    if (!month_year || !schedule_data || !professionals_data) {
-        return res.status(400).json({ error: "Month year, schedule data, and professionals data are required" });
-    }
-
-    const id = uuidv4();
-    const scheduleDataString = JSON.stringify(schedule_data);
-    const professionalsDataString = JSON.stringify(professionals_data);
-
-    try {
-        const row = await db.get("SELECT id FROM history WHERE month_year = ?", [month_year]);
-
-        if (row) {
-            await db.run(
-                "UPDATE history SET schedule_data = ?, professionals_data = ?, created_at = CURRENT_TIMESTAMP WHERE id = ?",
-                [scheduleDataString, professionalsDataString, row.id]
-            );
-            res.json({ message: "History record updated successfully", id: row.id, month_year });
-        } else {
-            await db.run(
-                "INSERT INTO history (id, month_year, schedule_data, professionals_data) VALUES (?, ?, ?, ?)",
-                [id, month_year, scheduleDataString, professionalsDataString]
-            );
-            res.status(201).json({ id: id, month_year, created_at: new Date().toISOString() });
-        }
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-};
-
-exports.deleteHistoryRecord = async (req, res) => {
+exports.deleteHistoryEntry = (req, res) => {
     const { id } = req.params;
-    try {
-        const result = await db.run("DELETE FROM history WHERE id = ?", [id]);
-        if (result.changes > 0) {
-            res.json({ message: "History record deleted successfully", id });
-        } else {
-            res.status(404).json({ message: "History record not found" });
+    db.run(`DELETE FROM history WHERE id = ?`, id, function (err) {
+        if (err) {
+            res.status(500).json({ error: err.message });
+            return;
         }
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+        if (this.changes === 0) {
+            res.status(404).json({ message: 'Entrada do histórico não encontrada' });
+        } else {
+            res.json({ message: 'Entrada do histórico excluída com sucesso', changes: this.changes });
+        }
+    });
 };

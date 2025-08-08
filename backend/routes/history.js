@@ -2,8 +2,8 @@ const express = require('express');
 const router = express.Router();
 const historyController = require('../controllers/historyController');
 
-router.get('/', historyController.getAllHistoryRecords);
-router.post('/', historyController.saveHistoryRecord);
-router.delete('/:id', historyController.deleteHistoryRecord);
+router.post('/', historyController.saveSchedule);
+router.get('/', historyController.getHistory);
+router.delete('/:id', historyController.deleteHistoryEntry);
 
 module.exports = router;

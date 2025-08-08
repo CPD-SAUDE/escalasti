@@ -1,15 +1,11 @@
 @echo off
-echo ========================================
-echo  SISTEMA DE ESCALA DE SOBREAVISO
-echo  Instalacao Completa
-echo ========================================
+echo Iniciando a instalacao do Sistema de Escala de Sobreaviso...
 
 REM Verificar se Node.js está instalado
-node --version >nul 2>&1
+where node >nul 2>nul
 if %errorlevel% neq 0 (
-    echo ERRO: Node.js nao encontrado!
-    echo Por favor, instale o Node.js antes de continuar.
-    echo Download: https://nodejs.org/
+    echo ERRO: Node.js nao encontrado. Por favor, instale o Node.js (versao 18 ou superior) e o npm.
+    echo Visite https://nodejs.org/
     pause
     exit /b 1
 )
@@ -29,21 +25,21 @@ REM Instalar dependências do backend
 echo Instalando dependencias do backend...
 npm install
 if %errorlevel% neq 0 (
-    echo ERRO: Falha ao instalar dependencias do backend!
+    echo ERRO: Falha ao instalar dependencias do backend.
     pause
     exit /b 1
 )
+echo Dependencias do backend instaladas.
 
 REM Inicializar banco de dados
-echo Inicializando banco de dados...
+echo Inicializando o banco de dados do backend...
 npm run init-db
 if %errorlevel% neq 0 (
-    echo ERRO: Falha ao inicializar banco de dados!
+    echo ERRO: Falha ao inicializar o banco de dados do backend.
     pause
     exit /b 1
 )
-
-echo Backend instalado com sucesso!
+echo Banco de dados do backend inicializado.
 
 REM Voltar para pasta raiz
 cd ..
@@ -57,12 +53,11 @@ REM Instalar dependências do frontend
 echo Instalando dependencias do frontend...
 npm install
 if %errorlevel% neq 0 (
-    echo ERRO: Falha ao instalar dependencias do frontend!
+    echo ERRO: Falha ao instalar dependencias do frontend.
     pause
     exit /b 1
 )
-
-echo Frontend instalado com sucesso!
+echo Dependencias do frontend instaladas.
 
 echo.
 echo ========================================

@@ -1,44 +1,68 @@
-"use client";
+'use client'
 
-import { useApiConnection } from "@/lib/api";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Wifi, WifiOff } from 'lucide-react';
+import { useState, useEffect } from 'react'
+import { CircleCheck, CircleX } from 'lucide-react'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 export function ApiStatus() {
-  const { isConnected, isLoading } = useApiConnection();
+  const [isOnline, setIsOnline] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [lastCheck, setLastCheck] = useState<string | null>(null)
 
-  if (isLoading) {
-    return (
-      <Alert className="mb-4">
-        <Loader2 className="h-4 w-4 animate-spin" />
-        <AlertDescription>
-          Verificando conexão com o servidor...
-        </AlertDescription>
-      </Alert>
-    );
-  }
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'
 
-  if (!isConnected) {
-    return (
-      <Alert variant="destructive" className="mb-4">
-        <WifiOff className="h-4 w-4" />
-        <AlertDescription>
-          <strong>Sem conexão com o servidor!</strong>
-          <br />
-          Verifique se o backend está rodando em http://localhost:3001
-          <br />
-          Execute o arquivo <code>start-backend.bat</code> na pasta backend.
-        </AlertDescription>
-      </Alert>
-    );
-  }
+  useEffect(() => {
+    const checkApiStatus = async () => {
+      setIsLoading(true)
+      try {
+        const response = await fetch(`${API_URL}/status`, { signal: AbortSignal.timeout(5000) }) // 5 second timeout
+        if (response.ok) {
+          setIsOnline(true)
+        } else {
+          setIsOnline(false)
+        }
+      } catch (error) {
+        console.error('Erro ao verificar status da API:', error)
+        setIsOnline(false)
+      } finally {
+        setIsLoading(false)
+        setLastCheck(new Date().toLocaleTimeString())
+      }
+    }
+
+    checkApiStatus()
+    const interval = setInterval(checkApiStatus, 30000); // Check every 30 seconds
+
+    return () => clearInterval(interval);
+  }, [API_URL])
+
+  const statusText = isLoading
+    ? 'Verificando API...'
+    : isOnline
+      ? 'API Online'
+      : 'API Offline'
+
+  const statusIcon = isOnline ? (
+    <CircleCheck className="h-5 w-5 text-green-500" />
+  ) : (
+    <CircleX className="h-5 w-5 text-red-500" />
+  )
 
   return (
-    <Alert className="mb-4 border-green-200 bg-green-50">
-      <Wifi className="h-4 w-4 text-green-600" />
-      <AlertDescription className="text-green-800">
-        Conectado ao servidor com sucesso!
-      </AlertDescription>
-    </Alert>
-  );
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className="flex items-center gap-2 text-sm">
+            {statusIcon}
+            <span className="hidden sm:inline">{statusText}</span>
+          </div>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>{statusText}</p>
+          {lastCheck && <p>Última verificação: {lastCheck}</p>}
+          {!isOnline && <p>Verifique se o backend está rodando em {API_URL}</p>}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  )
 }

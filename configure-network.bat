@@ -1,75 +1,33 @@
 @echo off
-echo ========================================
-echo  CONFIGURACAO DE REDE LOCAL
-echo  Sistema de Escala de Sobreaviso
-echo ========================================
+echo Configurando a rede para o sistema de escala...
 
-REM **IMPORTANTE: Execute este script como ADMINISTRADOR**
-
-REM Obter IP da rede
-echo Detectando IP da rede local...
-for /f "tokens=*" %%i in ('node backend\scripts\get-network-ip.js ^| findstr "IP Principal"') do (
-    set "LINE=%%i"
-    for /f "tokens=2 delims=:" %%j in ("!LINE!") do set LOCAL_IP=%%j
-)
-set LOCAL_IP=%LOCAL_IP: =%
-
-if "%LOCAL_IP%"=="" (
-    echo ERRO: Nao foi possivel detectar o IP local.
-    echo Verifique sua conexao de rede.
+:: Verifica se o Node.js esta instalado
+where node >nul 2>nul
+if %errorlevel% neq 0 (
+    echo ERRO: Node.js nao encontrado. Por favor, instale o Node.js (versao 18 ou superior) e o npm.
+    echo Visite https://nodejs.org/
     pause
     exit /b 1
 )
 
-echo IP detectado: %LOCAL_IP%
+:: Navega para o diretorio raiz do projeto
+cd /d "%~dp0"
 
-echo.
-echo ========================================
-echo  CONFIGURANDO FIREWALL DO WINDOWS
-echo ========================================
+:: Obtem o IP da maquina na rede local usando o script Node.js
+echo Obtendo o IP da rede local...
+for /f "delims=" %%i in ('node backend\scripts\get-network-ip.js') do set "IP_ADDRESS=%%i"
 
-echo Adicionando regras do firewall para as portas 3000 (Frontend) e 3001 (Backend)...
-echo (Pode ser necessaria permissao de Administrador)
-
-REM Adicionar regras do firewall para as portas
-netsh advfirewall firewall add rule name="Sistema Escala - Frontend (3000)" dir=in action=allow protocol=TCP localport=3000 enable=yes
-netsh advfirewall firewall add rule name="Sistema Escala - Backend (3001)" dir=in action=allow protocol=TCP localport=3001 enable=yes
-
-if %errorlevel% equ 0 (
-    echo ✅ Regras do firewall configuradas com sucesso!
+if "%IP_ADDRESS%"=="" (
+    echo Nao foi possivel obter o IP da rede. Usando localhost.
+    set "IP_ADDRESS=localhost"
 ) else (
-    echo ⚠️  Erro ao configurar firewall. Certifique-se de executar como Administrador.
-    echo Se o problema persistir, desative o firewall temporariamente para teste.
+    echo IP da rede local detectado: %IP_ADDRESS%
 )
 
-echo.
-echo ========================================
-echo  CONFIGURANDO VARIAVEIS DE AMBIENTE
-echo ========================================
+:: Atualiza o arquivo .env.local com o IP da rede
+echo Atualizando .env.local com NEXT_PUBLIC_API_URL=http://%IP_ADDRESS%:3001/api
+echo NEXT_PUBLIC_API_URL=http://%IP_ADDRESS%:3001/api > .env.local
 
-REM Atualizar arquivo .env.local
-echo Atualizando configuracao do frontend (NEXT_PUBLIC_API_URL)...
-echo NEXT_PUBLIC_API_URL=http://%LOCAL_IP%:3001/api > .env.local
-echo PORT=3000 >> .env.local
-
-echo ✅ Arquivo .env.local atualizado!
-
-echo.
-echo ========================================
-echo  CONFIGURACAO CONCLUIDA!
-echo ========================================
-echo.
-echo O sistema foi configurado para rede local!
-echo.
-echo INFORMACOES IMPORTANTES:
-echo - IP do servidor (este computador): %LOCAL_IP%
-echo - Frontend (para outros computadores): http://%LOCAL_IP%:3000
-echo - Backend (API): http://%LOCAL_IP%:3001
-echo.
-echo PARA OUTROS COMPUTADORES ACESSAREM:
-echo 1. Certifique-se que este computador esta ligado e na mesma rede.
-echo 2. No navegador de outro computador, digite: http://%LOCAL_IP%:3000
-echo.
-echo Agora execute 'start-system-network.bat' para iniciar o sistema!
-echo.
+echo Configuracao de rede concluida.
+echo Lembre-se de reiniciar o frontend (npm run dev) para que as alteracoes tenham efeito.
 pause

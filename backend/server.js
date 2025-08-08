@@ -57,7 +57,7 @@ app.get('/api/status', (req, res) => {
   const localIP = getLocalIP();
   res.json({
     status: 'OK',
-    message: 'Sistema de Escala de Sobreaviso - Backend funcionando',
+    message: 'Backend do Sistema de Escala de Sobreaviso está online!',
     timestamp: new Date().toISOString(),
     version: '1.0.0',
     server_ip: localIP,

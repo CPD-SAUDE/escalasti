@@ -4,6 +4,15 @@ echo  SISTEMA DE ESCALA DE SOBREAVISO
 echo  Iniciando Sistema Completo
 echo ========================================
 
+REM Verificar se o Node.js esta instalado
+where node >nul 2>nul
+if %errorlevel% neq 0 (
+    echo ERRO: Node.js nao encontrado. Por favor, instale o Node.js (versao 18 ou superior) e o npm.
+    echo Visite https://nodejs.org/
+    pause
+    exit /b 1
+)
+
 REM Verificar se as instalações foram feitas
 if not exist "backend\node_modules" (
     echo ERRO: Backend nao instalado!
@@ -19,14 +28,21 @@ if not exist "node_modules" (
     exit /b 1
 )
 
+REM Navega para o diretorio raiz do projeto
+cd /d "%~dp0"
+
 echo Iniciando backend...
-start "Backend - Sistema de Escala" cmd /k "cd backend && npm start"
+start "Backend - Sistema de Escala" cmd /k "cd backend && npm install && npm run init-db && npm start"
 
 REM Aguardar alguns segundos para o backend inicializar
 timeout /t 5 /nobreak >nul
 
+REM Cria ou atualiza o arquivo .env.local para apontar para localhost
+echo Criando/Atualizando .env.local para localhost...
+echo NEXT_PUBLIC_API_URL=http://localhost:3001/api > .env.local
+
 echo Iniciando frontend...
-start "Frontend - Sistema de Escala" cmd /k "npm run dev"
+start "Frontend - Sistema de Escala" cmd /k "npm install && npm run dev"
 
 echo.
 echo ========================================

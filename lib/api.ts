@@ -205,3 +205,6 @@ export function useApiConnection() {
 
   return { isConnected, isLoading };
 }
+
+// This file is intentionally left empty as API calls are handled directly in hooks.
+// It can be used for centralized API client configuration if needed in the future.

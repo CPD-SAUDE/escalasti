@@ -1,19 +1,29 @@
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+"use client"
+
+import * as React from "react"
+import { Check, Palette } from 'lucide-react'
+
+import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 
 interface ProfessionalColorPickerProps {
-  selectedColor: string;
-  onSelectColor: (color: string) => void;
+  color: string
+  setColor: (color: string) => void
 }
 
 const colors = [
-  "bg-red-500", "bg-blue-500", "bg-green-500", "bg-yellow-500",
-  "bg-purple-500", "bg-pink-500", "bg-indigo-500", "bg-teal-500",
-  "bg-orange-500", "bg-cyan-500", "bg-lime-500", "bg-fuchsia-500",
-];
+  "#FF6B6B", "#4ECDC4", "#45B7D1", "#FFA07A", "#98D8AA",
+  "#FFD700", "#DA70D6", "#87CEEB", "#F08080", "#ADD8E6",
+  "#FFB6C1", "#90EE90", "#DDA0DD", "#AFEEEE", "#FFC0CB",
+  "#7B68EE", "#EE82EE", "#6A5ACD", "#BA55D3", "#4682B4"
+]
 
-export function ProfessionalColorPicker({ selectedColor, onSelectColor }: ProfessionalColorPickerProps) {
+export function ProfessionalColorPicker({ color, setColor }: ProfessionalColorPickerProps) {
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -21,25 +31,31 @@ export function ProfessionalColorPicker({ selectedColor, onSelectColor }: Profes
           variant="outline"
           className="w-full justify-start text-left font-normal"
         >
-          <div className={cn("w-4 h-4 rounded-full mr-2", selectedColor)}></div>
-          <span>Cor</span>
+          <div
+            className="w-4 h-4 rounded-full mr-2 border"
+            style={{ backgroundColor: color }}
+          />
+          <span>{color}</span>
+          <Palette className="ml-auto h-4 w-4 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-2">
-        <div className="grid grid-cols-4 gap-2">
-          {colors.map((color) => (
+      <PopoverContent className="w-auto p-0">
+        <div className="grid grid-cols-5 gap-2 p-2">
+          {colors.map((c) => (
             <div
-              key={color}
+              key={c}
               className={cn(
-                "w-8 h-8 rounded-full cursor-pointer",
-                color,
-                selectedColor === color && "ring-2 ring-offset-2 ring-primary"
+                "w-8 h-8 rounded-full cursor-pointer flex items-center justify-center border",
+                color === c && "ring-2 ring-offset-2 ring-primary"
               )}
-              onClick={() => onSelectColor(color)}
-            />
+              style={{ backgroundColor: c }}
+              onClick={() => setColor(c)}
+            >
+              {color === c && <Check className="h-4 w-4 text-white" />}
+            </div>
           ))}
         </div>
       </PopoverContent>
     </Popover>
-  );
+  )
 }

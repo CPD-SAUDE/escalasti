@@ -1,78 +1,72 @@
 # Backend do Sistema de Escala de Sobreaviso
 
-Este é o backend da aplicação de gerenciamento de escala de sobreaviso, construído com Node.js e Express, utilizando SQLite como banco de dados.
+Este diretório contém o código-fonte do backend do Sistema de Escala de Sobreaviso, construído com Node.js e Express, utilizando SQLite como banco de dados.
 
-## Estrutura de Pastas
+## Estrutura do Diretório
 
-- `backend/`: Contém todo o código do servidor.
-  - `controllers/`: Lógica de negócio para cada recurso (profissionais, escala, histórico, configurações).
-  - `database/`: Configuração e inicialização do banco de dados SQLite.
-  - `routes/`: Definição das rotas da API.
-  - `scripts/`: Scripts utilitários (ex: `init-database.js` para criar tabelas).
-  - `server.js`: Ponto de entrada principal do servidor.
-  - `package.json`: Dependências e scripts do Node.js.
-  - `.gitignore`: Arquivos e pastas a serem ignorados pelo Git.
-  - `README.md`: Este arquivo.
+-   `controllers/`: Contém a lógica de negócio para cada recurso (profissionais, escala, histórico, configurações). Cada arquivo aqui é responsável por processar as requisições e interagir com o banco de dados.
+-   `database/`: Contém o arquivo `database.js`, que é responsável pela inicialização e conexão com o banco de dados SQLite. O arquivo do banco de dados (`database.sqlite`) será criado aqui.
+-   `routes/`: Define as rotas da API RESTful. Cada arquivo de rota mapeia URLs para as funções dos controladores correspondentes.
+-   `scripts/`: Contém scripts utilitários, como `init-database.js` para criar as tabelas iniciais no banco de dados.
+-   `server.js`: O ponto de entrada principal da aplicação backend. Ele configura o servidor Express, carrega as rotas e inicia o servidor.
+-   `package.json`: Lista as dependências do projeto e os scripts npm para execução e outras tarefas.
 
-## Como Rodar o Backend
+## Tecnologias Utilizadas
 
-1.  **Navegue até a pasta `backend`:**
+-   **Node.js:** Ambiente de execução JavaScript.
+-   **Express.js:** Framework web para Node.js, usado para construir a API RESTful.
+-   **SQLite:** Banco de dados leve e baseado em arquivo, ideal para aplicações pequenas e médias ou para desenvolvimento local.
+-   **CORS:** Middleware para habilitar o Cross-Origin Resource Sharing, permitindo que o frontend (em uma origem diferente) acesse a API.
+
+## Instalação e Execução (Local)
+
+Para rodar o backend localmente (sem Docker), siga estes passos:
+
+1.  **Navegue até o diretório `backend`:**
     \`\`\`bash
     cd backend
     \`\`\`
+
 2.  **Instale as dependências:**
     \`\`\`bash
     npm install
     \`\`\`
-3.  **Inicialize o banco de dados (se for a primeira vez):**
+
+3.  **Inicialize o banco de dados (apenas na primeira vez):**
+    Este script criará o arquivo `database.sqlite` e as tabelas necessárias.
     \`\`\`bash
     npm run init-db
     \`\`\`
-    Isso criará o arquivo `schedule.db` na pasta `backend/database/` e as tabelas necessárias.
-4.  **Inicie o servidor:**
+
+4.  **Inicie o servidor backend:**
     \`\`\`bash
     npm start
     \`\`\`
-    O servidor estará rodando em `http://localhost:3001` (ou a porta configurada).
+    O backend estará rodando em `http://localhost:3001`.
 
-## Endpoints da API
+## Rotas da API
 
-### Profissionais (`/api/professionals`)
+As rotas da API são definidas na pasta `routes/`. Aqui estão as principais:
 
--   `GET /api/professionals`: Retorna todos os profissionais.
--   `GET /api/professionals/:id`: Retorna um profissional específico por ID.
--   `POST /api/professionals`: Cria um novo profissional.
-    -   Corpo da requisição (JSON): `{ "name": "Nome do Profissional", "color": "bg-blue-500", "default_hours": 12 }`
--   `PUT /api/professionals/:id`: Atualiza um profissional existente.
-    -   Corpo da requisição (JSON): `{ "name": "Novo Nome", "color": "bg-green-500", "default_hours": 8 }`
--   `DELETE /api/professionals/:id`: Deleta um profissional.
+-   `/api/professionals`: Gerenciamento de profissionais.
+-   `/api/schedule`: Gerenciamento da escala.
+-   `/api/history`: Gerenciamento do histórico de escalas.
+-   `/api/config`: Gerenciamento das configurações do sistema.
 
-### Escala (`/api/schedule`)
+Consulte os arquivos em `routes/` e `controllers/` para detalhes sobre os endpoints e suas funcionalidades.
 
--   `GET /api/schedule?year=YYYY&month=MM`: Retorna todas as entradas de escala para um mês e ano específicos.
--   `POST /api/schedule`: Cria ou atualiza uma entrada de escala para uma data.
-    -   Corpo da requisição (JSON): `{ "date": "YYYY-MM-DD", "professionalId": "uuid-do-profissional", "hours": 12, "observation": "Opcional" }`
--   `DELETE /api/schedule/:date`: Deleta a entrada de escala para uma data específica.
--   `POST /api/schedule/clear-month`: Limpa todas as entradas de escala para um mês e ano específicos.
-    -   Corpo da requisição (JSON): `{ "year": YYYY, "month": MM }`
+## Persistência de Dados
 
-### Histórico (`/api/history`)
+O banco de dados SQLite (`database.sqlite`) é armazenado na pasta `database/`. Se você apagar este arquivo, todos os seus dados serão perdidos.
 
--   `GET /api/history`: Retorna todos os registros de histórico.
--   `POST /api/history`: Salva um registro de escala no histórico.
-    -   Corpo da requisição (JSON): `{ "month_year": "YYYY-MM", "schedule_data": [...], "professionals_data": [...] }`
--   `DELETE /api/history/:id`: Deleta um registro de histórico.
+Ao usar Docker Compose, o volume `backend_data` é configurado para persistir este arquivo, garantindo que seus dados não sejam perdidos mesmo se os contêineres forem removidos e recriados.
 
-### Configurações (`/api/config`)
+## Variáveis de Ambiente
 
--   `GET /api/config`: Retorna as configurações da aplicação.
--   `PUT /api/config`: Atualiza as configurações da aplicação.
-    -   Corpo da requisição (JSON): `{ "company_name": "Nova Empresa", "department_name": "Novo Departamento", "system_title": "Novo Título" }`
+O backend pode usar variáveis de ambiente para configuração, embora este projeto use principalmente configurações internas ou via API. Para portas, o `server.js` define a porta 3001.
 
-## Dependências
+## Solução de Problemas
 
--   `express`: Framework web para Node.js.
--   `sqlite3`: Driver SQLite para Node.js.
--   `cors`: Middleware para habilitar Cross-Origin Resource Sharing.
--   `uuid`: Para gerar IDs únicos.
--   `nodemon` (devDependencies): Para reiniciar automaticamente o servidor durante o desenvolvimento.
+-   **"Port 3001 already in use"**: Outro processo está usando a porta 3001. Você pode parar o outro processo ou alterar a porta no `server.js`.
+-   **Erros de banco de dados**: Verifique se você executou `npm run init-db` pelo menos uma vez.
+-   **Erros de CORS**: Certifique-se de que o middleware `cors()` está configurado corretamente no `server.js` para permitir requisições do seu frontend.

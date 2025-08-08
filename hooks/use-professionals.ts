@@ -1,76 +1,108 @@
-"use client";
-
-import { useState, useEffect } from 'react';
-import { apiClient } from '@/lib/api';
-import { Professional } from '@/lib/types';
+import { useState, useEffect, useCallback } from 'react'
+import { Professional } from '@/lib/types'
 
 export function useProfessionals() {
-  const [professionals, setProfessionals] = useState<Professional[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [professionals, setProfessionals] = useState<Professional[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<Error | null>(null)
 
-  const fetchProfessionals = async () => {
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'
+
+  const fetchProfessionals = useCallback(async () => {
+    setLoading(true)
+    setError(null)
     try {
-      setLoading(true);
-      setError(null);
-      const data = await apiClient.getProfessionals();
-      setProfessionals(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao carregar profissionais');
-      console.error('Erro ao buscar profissionais:', err);
+      const response = await fetch(`${API_URL}/professionals`)
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      const data = await response.json()
+      setProfessionals(data)
+    } catch (e) {
+      setError(e as Error)
+      console.error("Failed to fetch professionals:", e)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }, [API_URL])
 
-  const addProfessional = async (professional: Omit<Professional, 'created_at' | 'updated_at'>) => {
+  const addProfessional = useCallback(async (name: string, defaultHours: number, color: string) => {
+    setLoading(true)
+    setError(null)
     try {
-      const newProfessional = await apiClient.createProfessional(professional);
-      setProfessionals(prev => [...prev, newProfessional]);
-      return newProfessional;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Erro ao adicionar profissional';
-      setError(errorMessage);
-      throw new Error(errorMessage);
+      const response = await fetch(`${API_URL}/professionals`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name, defaultHours, color }),
+      })
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      const newProfessional = await response.json()
+      setProfessionals(prev => [...prev, newProfessional])
+      return newProfessional
+    } catch (e) {
+      setError(e as Error)
+      console.error("Failed to add professional:", e)
+      throw e;
+    } finally {
+      setLoading(false)
     }
-  };
+  }, [API_URL])
 
-  const updateProfessional = async (id: string, updates: Partial<Professional>) => {
+  const updateProfessional = useCallback(async (id: number, name: string, defaultHours: number, color: string) => {
+    setLoading(true)
+    setError(null)
     try {
-      const updatedProfessional = await apiClient.updateProfessional(id, updates);
-      setProfessionals(prev => 
-        prev.map(p => p.id === id ? updatedProfessional : p)
-      );
-      return updatedProfessional;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Erro ao atualizar profissional';
-      setError(errorMessage);
-      throw new Error(errorMessage);
+      const response = await fetch(`${API_URL}/professionals/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name, defaultHours, color }),
+      })
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      const updatedProfessional = await response.json()
+      setProfessionals(prev => prev.map(p => p.id === id ? { ...p, name, defaultHours, color } : p))
+      return updatedProfessional
+    } catch (e) {
+      setError(e as Error)
+      console.error("Failed to update professional:", e)
+      throw e;
+    } finally {
+      setLoading(false)
     }
-  };
+  }, [API_URL])
 
-  const deleteProfessional = async (id: string) => {
+  const deleteProfessional = useCallback(async (id: number) => {
+    setLoading(true)
+    setError(null)
     try {
-      await apiClient.deleteProfessional(id);
-      setProfessionals(prev => prev.filter(p => p.id !== id));
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Erro ao deletar profissional';
-      setError(errorMessage);
-      throw new Error(errorMessage);
+      const response = await fetch(`${API_URL}/professionals/${id}`, {
+        method: 'DELETE',
+      })
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      const result = await response.json()
+      setProfessionals(prev => prev.filter(p => p.id !== id))
+      return result
+    } catch (e) {
+      setError(e as Error)
+      console.error("Failed to delete professional:", e)
+      throw e;
+    } finally {
+      setLoading(false)
     }
-  };
+  }, [API_URL])
 
   useEffect(() => {
-    fetchProfessionals();
-  }, []);
+    fetchProfessionals()
+  }, [fetchProfessionals])
 
-  return {
-    professionals,
-    loading,
-    error,
-    addProfessional,
-    updateProfessional,
-    deleteProfessional,
-    refetch: fetchProfessionals,
-  };
+  return { professionals, fetchProfessionals, addProfessional, updateProfessional, deleteProfessional, loading, error }
 }

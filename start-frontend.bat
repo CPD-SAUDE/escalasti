@@ -42,10 +42,12 @@ if exist .next (
 
 REM Iniciar frontend
 echo Iniciando frontend...
-REM Forcar o Next.js a escutar em todas as interfaces de rede E passar a variavel de ambiente
-REM Para start-frontend.bat, usamos localhost como fallback se o IP de rede nao for conhecido
-set NEXT_PUBLIC_API_URL=http://localhost:3001/api
-set HOST=0.0.0.0
+
+:: Navega para o diretorio raiz do projeto (onde o frontend esta)
+cd /d "%~dp0"
+
+:: Inicia o servidor de desenvolvimento do frontend
 npm run dev
 
+:: Mantem a janela aberta apos a execucao
 pause

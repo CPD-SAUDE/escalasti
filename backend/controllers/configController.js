@@ -1,36 +1,26 @@
-// backend/controllers/configController.js
-const db = require('../database/database'); // Importa a instância única do banco de dados
+const db = require('../database/database');
 
-exports.getConfig = async (req, res) => {
-    try {
-        const row = await db.get("SELECT * FROM config WHERE id = 'app_config'", []);
-        if (row) {
-            res.json(row);
-        } else {
-            res.status(404).json({ message: "Config not found" });
+exports.getConfig = (req, res) => {
+    db.get("SELECT * FROM config WHERE id = 1", (err, row) => {
+        if (err) {
+            res.status(500).json({ error: err.message });
+            return;
         }
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+        res.json(row || { companyName: "Minha Empresa", departmentName: "TI", systemName: "Sistema de Escala" });
+    });
 };
 
-exports.updateConfig = async (req, res) => {
-    const { company_name, department_name, system_title } = req.body;
-    if (!company_name || !department_name || !system_title) {
-        return res.status(400).json({ error: "All config fields are required" });
-    }
-
-    try {
-        const result = await db.run(
-            `UPDATE config SET company_name = ?, department_name = ?, system_title = ?, updated_at = CURRENT_TIMESTAMP WHERE id = 'app_config'`,
-            [company_name, department_name, system_title]
-        );
-        if (result.changes > 0) {
-            res.json({ message: "Config updated successfully", company_name, department_name, system_title });
-        } else {
-            res.status(404).json({ message: "Config not found or could not be updated" });
+exports.updateConfig = (req, res) => {
+    const { companyName, departmentName, systemName } = req.body;
+    db.run(
+        `INSERT OR REPLACE INTO config (id, companyName, departmentName, systemName) VALUES (1, ?, ?, ?)`,
+        [companyName, departmentName, systemName],
+        function (err) {
+            if (err) {
+                res.status(500).json({ error: err.message });
+                return;
+            }
+            res.json({ message: 'Configuração atualizada com sucesso', changes: this.changes });
         }
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+    );
 };

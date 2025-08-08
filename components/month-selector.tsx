@@ -1,49 +1,43 @@
-"use client";
+"use client"
 
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react';
-import { DatePicker } from "@/components/date-picker"; // Importar DatePicker
+import * as React from "react"
+import { format } from "date-fns"
+import { ptBR } from "date-fns/locale"
+import { ChevronLeft, ChevronRight } from 'lucide-react'
+
+import { Button } from "@/components/ui/button"
 
 interface MonthSelectorProps {
-  currentDate: Date;
-  onPrevMonth: () => void;
-  onNextMonth: () => void;
-  onGoToMonth: (date: Date) => void;
-  onGoToCurrentMonth: () => void;
+  currentMonth: Date
+  setCurrentMonth: (date: Date) => void
 }
 
-export function MonthSelector({
-  currentDate,
-  onPrevMonth,
-  onNextMonth,
-  onGoToMonth,
-  onGoToCurrentMonth,
-}: MonthSelectorProps) {
+export function MonthSelector({ currentMonth, setCurrentMonth }: MonthSelectorProps) {
+  const handlePreviousMonth = () => {
+    setCurrentMonth(prev => {
+      const newDate = new Date(prev.getFullYear(), prev.getMonth() - 1, 1);
+      return newDate;
+    });
+  }
+
+  const handleNextMonth = () => {
+    setCurrentMonth(prev => {
+      const newDate = new Date(prev.getFullYear(), prev.getMonth() + 1, 1);
+      return newDate;
+    });
+  }
+
   return (
     <div className="flex items-center space-x-2">
-      <Button variant="outline" size="icon" onClick={onPrevMonth}>
+      <Button variant="outline" size="icon" onClick={handlePreviousMonth}>
         <ChevronLeft className="h-4 w-4" />
       </Button>
-      {/* Usar DatePicker para o botão central */}
-      <DatePicker
-        selectedDate={currentDate}
-        onSelectDate={(date) => {
-          if (date) {
-            onGoToMonth(date);
-          }
-        }}
-        className="w-auto" // Ajustar largura para se adequar ao conteúdo
-      >
-        <Button variant="outline">
-          <CalendarDays className="h-4 w-4 mr-2" />
-          {format(currentDate, "MMMM 'de' yyyy", { locale: ptBR })}
-        </Button>
-      </DatePicker>
-      <Button variant="outline" size="icon" onClick={onNextMonth}>
+      <span className="text-sm font-medium w-32 text-center">
+        {format(currentMonth, "MMMM yyyy", { locale: ptBR })}
+      </span>
+      <Button variant="outline" size="icon" onClick={handleNextMonth}>
         <ChevronRight className="h-4 w-4" />
       </Button>
     </div>
-  );
+  )
 }

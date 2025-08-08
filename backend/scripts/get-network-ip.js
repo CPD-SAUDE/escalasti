@@ -1,16 +1,17 @@
 const os = require('os');
 
-function getLocalIP() {
-  const interfaces = os.networkInterfaces();
-  for (const name of Object.keys(interfaces)) {
-    for (const interface of interfaces[name]) {
-      // Pular endereços internos e não IPv4
-      if (interface.family === 'IPv4' && !interface.internal) {
-        return interface.address;
-      }
+function getNetworkIp() {
+    const interfaces = os.networkInterfaces();
+    for (const devName in interfaces) {
+        const iface = interfaces[devName];
+        for (let i = 0; i < iface.length; i++) {
+            const alias = iface[i];
+            if (alias.family === 'IPv4' && alias.address !== '127.0.0.1' && !alias.internal) {
+                return alias.address;
+            }
+        }
     }
-  }
-  return 'localhost';
+    return 'localhost'; // Fallback
 }
 
 function getAllIPs() {
@@ -37,7 +38,7 @@ if (require.main === module) {
   console.log('INFORMAÇÕES DE REDE');
   console.log('='.repeat(50));
   
-  const localIP = getLocalIP();
+  const localIP = getNetworkIp();
   console.log(`IP Principal: ${localIP}`);
   
   console.log('\nTodas as interfaces de rede:');
@@ -52,4 +53,4 @@ if (require.main === module) {
   console.log(`3. Configure NEXT_PUBLIC_API_URL=http://${localIP}:3001/api`);
 }
 
-module.exports = { getLocalIP, getAllIPs };
+module.exports = { getNetworkIp, getAllIPs };
