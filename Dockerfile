@@ -6,7 +6,7 @@ WORKDIR /app
 # Copia os arquivos package.json e package-lock.json
 COPY package*.json ./
 
-# Instala as dependências do Node.js
+# Instala as dependências do Node.js com --force para resolver conflitos de peer dependencies
 RUN npm install --force
 
 # Copia o restante do código da aplicação
