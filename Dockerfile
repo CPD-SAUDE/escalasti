@@ -6,14 +6,13 @@ WORKDIR /app
 # Copia os arquivos package.json e package-lock.json
 COPY package*.json ./
 
-# Instala as dependências do Node.js com --force para resolver conflitos de peer dependencies
-RUN npm install --force
+# Instala as dependências do Node.js com --legacy-peer-deps para resolver conflitos
+RUN npm install --legacy-peer-deps
 
 # Copia o restante do código da aplicação
 COPY . .
 
 # Define a variável de ambiente NEXT_PUBLIC_API_URL para o processo de build
-# Isso garante que o frontend saiba onde encontrar o backend durante a construção
 ENV NEXT_PUBLIC_API_URL=http://backend:3001/api
 
 # Constrói a aplicação Next.js para produção
@@ -31,7 +30,6 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/package.json ./package.json
 
 # Define as variáveis de ambiente para o tempo de execução
-# O frontend se conectará ao serviço 'backend' dentro da rede Docker
 ENV NEXT_PUBLIC_API_URL=http://backend:3001/api
 ENV PORT=3000
 
