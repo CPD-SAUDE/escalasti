@@ -88,6 +88,3 @@
     @apply bg-background text-foreground;
   }
 }
-
-/* Este arquivo pode ser removido se app/globals.css for o único arquivo CSS global */
-/* Se você tiver estilos específicos aqui que não estão em app/globals.css, eles devem ser mesclados */

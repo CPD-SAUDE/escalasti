@@ -1,8 +1,9 @@
 // lib/api.ts
 import { Professional, ScheduleEntry, HistoryRecord, Config } from './types';
 import { useState, useEffect } from 'react';
+import axios from 'axios';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
 export interface ScheduleEntryWithProfessional extends ScheduleEntry {
   professional_name: string;
@@ -19,154 +20,82 @@ class ApiClient {
 
   // --- Professionals API ---
   async getProfessionals(): Promise<Professional[]> {
-    const response = await fetch(`${this.baseUrl}/professionals`);
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    return response.json();
+    const response = await axios.get(`${this.baseUrl}/professionals`);
+    return response.data;
   }
 
   async createProfessional(professional: Omit<Professional, 'id' | 'created_at' | 'updated_at'>): Promise<Professional> {
-    const response = await fetch(`${this.baseUrl}/professionals`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(professional),
-    });
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    return response.json();
+    const response = await axios.post(`${this.baseUrl}/professionals`, professional);
+    return response.data;
   }
 
   async updateProfessional(id: string, professional: Partial<Omit<Professional, 'id' | 'created_at' | 'updated_at'>>): Promise<Professional> {
-    const response = await fetch(`${this.baseUrl}/professionals/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(professional),
-    });
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    return response.json();
+    const response = await axios.put(`${this.baseUrl}/professionals/${id}`, professional);
+    return response.data;
   }
 
   async deleteProfessional(id: string): Promise<{ message: string }> {
-    const response = await fetch(`${this.baseUrl}/professionals/${id}`, {
-      method: 'DELETE',
-    });
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    return response.json();
+    const response = await axios.delete(`${this.baseUrl}/professionals/${id}`);
+    return response.data;
   }
 
   // --- Schedule API ---
   async getScheduleEntries(): Promise<ScheduleEntryWithProfessional[]> {
     // Este método é genérico, para buscar todas as entradas sem filtro de mês/ano
-    const response = await fetch(`${this.baseUrl}/schedule`);
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    return response.json();
+    const response = await axios.get(`${this.baseUrl}/schedule`);
+    return response.data;
   }
 
   async getScheduleByMonth(year: number, month: number): Promise<ScheduleEntryWithProfessional[]> {
-    const response = await fetch(`${this.baseUrl}/schedule?year=${year}&month=${month}`);
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    return response.json();
+    const response = await axios.get(`${this.baseUrl}/schedule?year=${year}&month=${month}`);
+    return response.data;
   }
 
   async createOrUpdateScheduleEntry(entry: Omit<ScheduleEntry, 'id' | 'created_at' | 'updated_at'>): Promise<ScheduleEntry> {
-    const response = await fetch(`${this.baseUrl}/schedule`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(entry),
-    });
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    return response.json();
+    const response = await axios.post(`${this.baseUrl}/schedule`, entry);
+    return response.data;
   }
 
   async deleteScheduleEntry(date: string): Promise<{ message: string }> {
-    const response = await fetch(`${this.baseUrl}/schedule/${date}`, {
-      method: 'DELETE',
-    });
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    return response.json();
+    const response = await axios.delete(`${this.baseUrl}/schedule/${date}`);
+    return response.data;
   }
 
   async clearScheduleMonth(year: number, month: number): Promise<{ message: string, deletedCount: number }> {
-    const response = await fetch(`${this.baseUrl}/schedule/clear-month`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ year, month }),
-    });
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    return response.json();
+    const response = await axios.post(`${this.baseUrl}/schedule/clear-month`, { year, month });
+    return response.data;
   }
 
   // --- History API ---
   async getHistoryRecords(): Promise<HistoryRecord[]> {
-    const response = await fetch(`${this.baseUrl}/history`);
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    return response.json();
+    const response = await axios.get(`${this.baseUrl}/history`);
+    return response.data;
   }
 
   async saveToHistory(record: Omit<HistoryRecord, 'id' | 'created_at'>): Promise<HistoryRecord> {
-    const response = await fetch(`${this.baseUrl}/history`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(record),
-    });
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    return response.json();
+    const response = await axios.post(`${this.baseUrl}/history`, record);
+    return response.data;
   }
 
   async deleteFromHistory(id: string): Promise<{ message: string }> {
-    const response = await fetch(`${this.baseUrl}/history/${id}`, {
-      method: 'DELETE',
-    });
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    return response.json();
+    const response = await axios.delete(`${this.baseUrl}/history/${id}`);
+    return response.data;
   }
 
   // --- Config API ---
   async getConfig(): Promise<Config> {
-    const response = await fetch(`${this.baseUrl}/config`);
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    return response.json();
+    const response = await axios.get(`${this.baseUrl}/config`);
+    return response.data;
   }
 
   async updateConfig(config: Omit<Config, 'id' | 'created_at' | 'updated_at'>): Promise<Config> {
-    const response = await fetch(`${this.baseUrl}/config`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(config),
-    });
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    return response.json();
+    const response = await axios.put(`${this.baseUrl}/config`, config);
+    return response.data;
   }
 }
 
 // Exporta uma instância única do ApiClient
-export const apiClient = new ApiClient(API_BASE_URL);
+export const apiClient = new ApiClient(API_URL);
 
 // Hook para verificar a conexão com a API
 export function useApiConnection() {
@@ -179,7 +108,7 @@ export function useApiConnection() {
     const checkConnection = async () => {
       setIsLoading(true);
       try {
-        const response = await fetch(`${API_BASE_URL}/status`);
+        const response = await axios.get(`${API_URL}/status`);
         if (isMounted) {
           setIsConnected(response.ok);
         }
@@ -205,6 +134,3 @@ export function useApiConnection() {
 
   return { isConnected, isLoading };
 }
-
-// This file is intentionally left empty as API calls are handled directly in hooks.
-// It can be used for centralized API client configuration if needed in the future.

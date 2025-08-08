@@ -1,88 +1,99 @@
 'use client'
 
 import { useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import { useProfessionals } from '@/hooks/use-professionals'
 import { Professional } from '@/lib/types'
-import { ProfessionalColorPicker } from './professional-color-picker'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter
-} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
+import { Card, CardContent, CardFooter } from '@/components/ui/card'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Trash2, Edit, PlusCircle } from 'lucide-react'
+import { Trash2, PlusCircle, Save, Loader2 } from 'lucide-react'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
+import { ProfessionalColorPicker } from './professional-color-picker'
 
-interface ProfessionalManagementProps {
-  professionals: Professional[]
-  addProfessional: (name: string, defaultHours: number, color: string) => Promise<void>
-  updateProfessional: (id: number, name: string, defaultHours: number, color: string) => Promise<void>
-  deleteProfessional: (id: number) => Promise<void>
-  loading: boolean
-}
-
-export function ProfessionalManagement({
-  professionals,
-  addProfessional,
-  updateProfessional,
-  deleteProfessional,
-  loading
-}: ProfessionalManagementProps) {
+export function ProfessionalManagement() {
+  const { professionals, addProfessional, updateProfessional, deleteProfessional, loading, error } = useProfessionals()
   const [newProfessionalName, setNewProfessionalName] = useState('')
-  const [newProfessionalHours, setNewProfessionalHours] = useState(8)
-  const [newProfessionalColor, setNewProfessionalColor] = useState('#4ECDC4')
-
-  const [editingProfessional, setEditingProfessional] = useState<Professional | null>(null)
-  const [editName, setEditName] = useState('')
-  const [editHours, setEditHours] = useState(0)
-  const [editColor, setEditColor] = useState('')
+  const [newProfessionalHours, setNewProfessionalHours] = useState<number>(0)
+  const [newProfessionalColor, setNewProfessionalColor] = useState('#000000')
+  const [editingProfessionalId, setEditingProfessionalId] = useState<number | null>(null)
+  const [editingProfessionalName, setEditingProfessionalName] = useState('')
+  const [editingProfessionalHours, setEditingProfessionalHours] = useState<number>(0)
+  const [editingProfessionalColor, setEditingProfessionalColor] = useState('#000000')
 
   const handleAddProfessional = async () => {
     if (newProfessionalName.trim()) {
-      await addProfessional(newProfessionalName.trim(), newProfessionalHours, newProfessionalColor)
+      await addProfessional({
+        name: newProfessionalName.trim(),
+        defaultHours: newProfessionalHours,
+        color: newProfessionalColor,
+      })
       setNewProfessionalName('')
-      setNewProfessionalHours(8)
-      setNewProfessionalColor('#4ECDC4')
+      setNewProfessionalHours(0)
+      setNewProfessionalColor('#000000')
     }
   }
 
-  const handleEditProfessional = (professional: Professional) => {
-    setEditingProfessional(professional)
-    setEditName(professional.name)
-    setEditHours(professional.defaultHours || 0)
-    setEditColor(professional.color || '#000000')
+  const startEditing = (professional: Professional) => {
+    setEditingProfessionalId(professional.id)
+    setEditingProfessionalName(professional.name)
+    setEditingProfessionalHours(professional.defaultHours)
+    setEditingProfessionalColor(professional.color)
   }
 
-  const handleUpdateProfessional = async () => {
-    if (editingProfessional && editName.trim()) {
-      await updateProfessional(editingProfessional.id, editName.trim(), editHours, editColor)
-      setEditingProfessional(null)
+  const cancelEditing = () => {
+    setEditingProfessionalId(null)
+    setEditingProfessionalName('')
+    setEditingProfessionalHours(0)
+    setEditingProfessionalColor('#000000')
+  }
+
+  const handleUpdateProfessional = async (id: number) => {
+    if (editingProfessionalName.trim()) {
+      await updateProfessional(id, {
+        name: editingProfessionalName.trim(),
+        defaultHours: editingProfessionalHours,
+        color: editingProfessionalColor,
+      })
+      cancelEditing()
     }
   }
 
   const handleDeleteProfessional = async (id: number) => {
-    if (window.confirm('Tem certeza que deseja excluir este profissional?')) {
-      await deleteProfessional(id)
-    }
+    await deleteProfessional(id)
+  }
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-48">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2">Carregando profissionais...</span>
+      </div>
+    )
+  }
+
+  if (error) {
+    return <div className="text-red-500 text-center">Erro ao carregar profissionais: {error}</div>
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Gerenciamento de Profissionais</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Adicionar Profissional */}
-        <div className="grid gap-4 border p-4 rounded-md">
+    <div className="space-y-6">
+      <Card>
+        <CardContent className="pt-6 space-y-4">
           <h3 className="text-lg font-semibold">Adicionar Novo Profissional</h3>
-          <div className="grid md:grid-cols-3 gap-4">
-            <div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+            <div className="space-y-2">
               <Label htmlFor="newProfessionalName">Nome</Label>
               <Input
                 id="newProfessionalName"
@@ -91,130 +102,123 @@ export function ProfessionalManagement({
                 placeholder="Nome do profissional"
               />
             </div>
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="newProfessionalHours">Horas Padrão</Label>
               <Input
                 id="newProfessionalHours"
                 type="number"
                 value={newProfessionalHours}
-                onChange={(e) => setNewProfessionalHours(parseInt(e.target.value))}
-                min="0"
+                onChange={(e) => setNewProfessionalHours(parseInt(e.target.value) || 0)}
+                placeholder="Horas padrão"
               />
             </div>
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="newProfessionalColor">Cor</Label>
-              <ProfessionalColorPicker color={newProfessionalColor} setColor={setNewProfessionalColor} />
+              <ProfessionalColorPicker
+                color={newProfessionalColor}
+                onChange={setNewProfessionalColor}
+                className="w-full"
+              />
             </div>
           </div>
-          <Button onClick={handleAddProfessional} disabled={loading}>
-            <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Profissional
+        </CardContent>
+        <CardFooter className="flex justify-end">
+          <Button onClick={handleAddProfessional} className="flex items-center gap-2">
+            <PlusCircle className="h-4 w-4" /> Adicionar
           </Button>
-        </div>
+        </CardFooter>
+      </Card>
 
-        {/* Lista de Profissionais */}
-        <div>
-          <h3 className="text-lg font-semibold mb-4">Profissionais Cadastrados</h3>
-          {loading ? (
-            <p>Carregando profissionais...</p>
-          ) : (
-            <ScrollArea className="h-[300px] w-full rounded-md border p-4">
-              {professionals.length === 0 ? (
-                <p className="text-center text-gray-500">Nenhum profissional cadastrado.</p>
-              ) : (
-                <div className="grid gap-4">
-                  {professionals.map((professional) => (
-                    <div
-                      key={professional.id}
-                      className="flex items-center justify-between p-3 border rounded-md"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div
-                          className="w-6 h-6 rounded-full border"
-                          style={{ backgroundColor: professional.color || '#cccccc' }}
-                        />
-                        <div>
-                          <p className="font-medium">{professional.name}</p>
-                          <p className="text-sm text-gray-500">
-                            {professional.defaultHours || 0}h padrão
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleEditProfessional(professional)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => handleDeleteProfessional(professional.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+      <h3 className="text-lg font-semibold">Profissionais Cadastrados</h3>
+      {professionals.length === 0 ? (
+        <p className="text-center text-muted-foreground">Nenhum profissional cadastrado.</p>
+      ) : (
+        <ScrollArea className="h-[400px] border rounded-md p-4">
+          <div className="space-y-4">
+            {professionals.map((professional) => (
+              <Card key={professional.id} className="p-4">
+                {editingProfessionalId === professional.id ? (
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                    <div className="space-y-2">
+                      <Label htmlFor={`editName-${professional.id}`}>Nome</Label>
+                      <Input
+                        id={`editName-${professional.id}`}
+                        value={editingProfessionalName}
+                        onChange={(e) => setEditingProfessionalName(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor={`editHours-${professional.id}`}>Horas Padrão</Label>
+                      <Input
+                        id={`editHours-${professional.id}`}
+                        type="number"
+                        value={editingProfessionalHours}
+                        onChange={(e) => setEditingProfessionalHours(parseInt(e.target.value) || 0)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor={`editColor-${professional.id}`}>Cor</Label>
+                      <ProfessionalColorPicker
+                        color={editingProfessionalColor}
+                        onChange={setEditingProfessionalColor}
+                        className="w-full"
+                      />
+                    </div>
+                    <div className="flex gap-2 mt-auto">
+                      <Button size="sm" onClick={() => handleUpdateProfessional(professional.id)} className="flex items-center gap-1">
+                        <Save className="h-4 w-4" /> Salvar
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={cancelEditing}>
+                        Cancelar
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-6 h-6 rounded-full border"
+                        style={{ backgroundColor: professional.color }}
+                      />
+                      <div>
+                        <p className="font-medium">{professional.name}</p>
+                        <p className="text-sm text-muted-foreground">{professional.defaultHours} horas padrão</p>
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
-            </ScrollArea>
-          )}
-        </div>
-
-        {/* Dialog de Edição */}
-        {editingProfessional && (
-          <Dialog open={!!editingProfessional} onOpenChange={() => setEditingProfessional(null)}>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Editar Profissional</DialogTitle>
-                <DialogDescription>
-                  Altere os detalhes do profissional selecionado.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="editName" className="text-right">
-                    Nome
-                  </Label>
-                  <Input
-                    id="editName"
-                    value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
-                    className="col-span-3"
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="editHours" className="text-right">
-                    Horas Padrão
-                  </Label>
-                  <Input
-                    id="editHours"
-                    type="number"
-                    value={editHours}
-                    onChange={(e) => setEditHours(parseInt(e.target.value))}
-                    className="col-span-3"
-                    min="0"
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="editColor" className="text-right">
-                    Cor
-                  </Label>
-                  <div className="col-span-3">
-                    <ProfessionalColorPicker color={editColor} setColor={setEditColor} />
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" onClick={() => startEditing(professional)}>
+                        Editar
+                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="destructive" size="sm">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Esta ação não pode ser desfeita. Isso excluirá permanentemente o profissional{' '}
+                              <span className="font-bold">{professional.name}</span> e o removerá de todas as escalas.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDeleteProfessional(professional.id)}>
+                              Deletar
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
                   </div>
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setEditingProfessional(null)}>Cancelar</Button>
-                <Button onClick={handleUpdateProfessional}>Salvar Alterações</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        )}
-      </CardContent>
-    </Card>
+                )}
+              </Card>
+            ))}
+          </div>
+        </ScrollArea>
+      )}
+    </div>
   )
 }

@@ -1,38 +1,34 @@
-version: '3.8'
+version: '3.8' # Versão do Docker Compose
 
 services:
-  backend:
-    build:
-      context: ./backend # O Dockerfile do backend está na pasta 'backend'
-      dockerfile: Dockerfile
-    ports:
-      - "3001:3001" # Mapeia a porta 3001 do host para a porta 3001 do contêiner
-    volumes:
-      # Persiste o arquivo do banco de dados SQLite.
-      # 'backend_data' é o nome do volume Docker, '/app/database' é o caminho dentro do contêiner.
-      - backend_data:/app/database
-    restart: always # Garante que o contêiner do backend sempre reinicie se parar
-    networks:
-      - app_network # Conecta ao contêiner do frontend na mesma rede
-
   frontend:
     build:
-      context: . # O Dockerfile do frontend está na raiz do projeto
+      context: . # Onde o Dockerfile do frontend está (raiz do projeto)
       dockerfile: Dockerfile
     ports:
-      - "3000:3000" # Mapeia a porta 3000 do host para a porta 3000 do contêiner
+      - "3000:3000" # Mapeia a porta 3000 do host para a porta 3000 do container
     environment:
-      # Define a URL da API para o frontend. 'backend' é o nome do serviço do backend no Docker Compose.
+      # A URL da API do backend, usando o nome do serviço Docker 'backend'
       NEXT_PUBLIC_API_URL: http://backend:3001/api
     depends_on:
-      - backend # Garante que o backend seja iniciado antes do frontend
-    restart: always # Garante que o contêiner do frontend sempre reinicie se parar
-    networks:
-      - app_network # Conecta ao contêiner do backend na mesma rede
+      - backend # Garante que o backend inicie antes do frontend
+    volumes:
+      - .:/app # Monta o diretório atual do host no /app do container (para desenvolvimento)
+      - /app/node_modules # Exclui node_modules da montagem para usar os do container
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend # Onde o Dockerfile do backend está
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001" # Mapeia a porta 3001 do host para a porta 3001 do container
+    volumes:
+      - ./backend:/app # Monta o diretório backend do host no /app do container
+      - /app/node_modules # Exclui node_modules da montagem
+      - backend_data:/app/database # Volume persistente para o banco de dados SQLite
+    restart: unless-stopped
+    command: sh -c "npm run init-db && npm start" # Inicializa o DB e depois inicia o servidor
 
 volumes:
-  backend_data: # Declara o volume nomeado para persistência do banco de dados
-
-networks:
-  app_network:
-    driver: bridge # Define uma rede bridge para os contêineres se comunicarem
+  backend_data: # Define o volume nomeado para persistir os dados do backend

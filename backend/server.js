@@ -30,8 +30,8 @@ function getLocalIP() {
 }
 
 // Middleware
-app.use(cors()); // Habilita CORS para todas as origens
-app.use(express.json()); // Faz o parse de corpos de requisição JSON
+app.use(cors()); // Permite requisições de diferentes origens (frontend)
+app.use(express.json()); // Habilita o parsing de JSON no corpo das requisições
 app.use(bodyParser.urlencoded({ extended: true }));
 
 // Middleware para log de requisições
@@ -54,16 +54,7 @@ app.get('/', (req, res) => {
 
 // Rota de status da API
 app.get('/api/status', (req, res) => {
-  const localIP = getLocalIP();
-  res.json({
-    status: 'OK',
-    message: 'Backend do Sistema de Escala de Sobreaviso está online!',
-    timestamp: new Date().toISOString(),
-    version: '1.0.0',
-    server_ip: localIP,
-    port: PORT,
-    network_access: `http://${localIP}:${PORT}`
-  });
+    res.json({ status: 'OK', message: 'Backend do Sistema de Escala de Sobreaviso está online!' });
 });
 
 // Catch-all para rotas /api que não foram tratadas por nenhum endpoint específico
@@ -88,7 +79,7 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Inicializar servidor
+// Iniciar servidor
 async function startServer() {
   try {
     // Inicializar banco de dados

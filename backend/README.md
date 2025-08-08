@@ -1,28 +1,22 @@
 # Backend do Sistema de Escala de Sobreaviso
 
-Este diretório contém o código-fonte do backend do Sistema de Escala de Sobreaviso, construído com Node.js e Express, utilizando SQLite como banco de dados.
+Este é o backend da aplicação, construído com Node.js e Express.js, utilizando SQLite como banco de dados.
 
-## Estrutura do Diretório
+## Estrutura de Pastas
 
--   `controllers/`: Contém a lógica de negócio para cada recurso (profissionais, escala, histórico, configurações). Cada arquivo aqui é responsável por processar as requisições e interagir com o banco de dados.
--   `database/`: Contém o arquivo `database.js`, que é responsável pela inicialização e conexão com o banco de dados SQLite. O arquivo do banco de dados (`database.sqlite`) será criado aqui.
--   `routes/`: Define as rotas da API RESTful. Cada arquivo de rota mapeia URLs para as funções dos controladores correspondentes.
--   `scripts/`: Contém scripts utilitários, como `init-database.js` para criar as tabelas iniciais no banco de dados.
--   `server.js`: O ponto de entrada principal da aplicação backend. Ele configura o servidor Express, carrega as rotas e inicia o servidor.
--   `package.json`: Lista as dependências do projeto e os scripts npm para execução e outras tarefas.
+*   `controllers/`: Contém a lógica de negócio para cada rota da API.
+*   `database/`: Gerencia a conexão e as operações com o banco de dados SQLite.
+*   `routes/`: Define as rotas da API e as associa aos controladores.
+*   `scripts/`: Scripts utilitários, como `get-network-ip.js` para obter o IP da máquina e `init-database.js` para inicializar as tabelas do banco de dados.
+*   `server.js`: O arquivo principal que inicializa o servidor Express.
 
-## Tecnologias Utilizadas
+## Como Rodar Localmente (sem Docker)
 
--   **Node.js:** Ambiente de execução JavaScript.
--   **Express.js:** Framework web para Node.js, usado para construir a API RESTful.
--   **SQLite:** Banco de dados leve e baseado em arquivo, ideal para aplicações pequenas e médias ou para desenvolvimento local.
--   **CORS:** Middleware para habilitar o Cross-Origin Resource Sharing, permitindo que o frontend (em uma origem diferente) acesse a API.
+**Pré-requisitos:**
 
-## Instalação e Execução (Local)
+*   Node.js (versão 18 ou superior) e npm instalados.
 
-Para rodar o backend localmente (sem Docker), siga estes passos:
-
-1.  **Navegue até o diretório `backend`:**
+1.  **Navegue até a pasta `backend`:**
     \`\`\`bash
     cd backend
     \`\`\`
@@ -32,41 +26,51 @@ Para rodar o backend localmente (sem Docker), siga estes passos:
     npm install
     \`\`\`
 
-3.  **Inicialize o banco de dados (apenas na primeira vez):**
-    Este script criará o arquivo `database.sqlite` e as tabelas necessárias.
+3.  **Inicialize o Banco de Dados (Opcional, mas recomendado na primeira vez):**
+    Este script garante que as tabelas necessárias sejam criadas no arquivo `database.db`.
     \`\`\`bash
     npm run init-db
     \`\`\`
+    (Este comando executa `node scripts/init-database.js`)
 
-4.  **Inicie o servidor backend:**
+4.  **Inicie o Servidor:**
     \`\`\`bash
     npm start
     \`\`\`
-    O backend estará rodando em `http://localhost:3001`.
+    O servidor estará rodando em `http://localhost:3001`.
 
 ## Rotas da API
 
-As rotas da API são definidas na pasta `routes/`. Aqui estão as principais:
+As rotas da API são definidas na pasta `routes/` e manipuladas pelos `controllers/`.
 
--   `/api/professionals`: Gerenciamento de profissionais.
--   `/api/schedule`: Gerenciamento da escala.
--   `/api/history`: Gerenciamento do histórico de escalas.
--   `/api/config`: Gerenciamento das configurações do sistema.
+*   **Status:**
+    *   `GET /api/status`: Retorna o status do servidor.
 
-Consulte os arquivos em `routes/` e `controllers/` para detalhes sobre os endpoints e suas funcionalidades.
+*   **Profissionais:**
+    *   `GET /api/professionals`: Lista todos os profissionais.
+    *   `POST /api/professionals`: Adiciona um novo profissional.
+    *   `PUT /api/professionals/:id`: Atualiza um profissional existente.
+    *   `DELETE /api/professionals/:id`: Remove um profissional.
 
-## Persistência de Dados
+*   **Escalas:**
+    *   `GET /api/schedule/:year/:month`: Obtém a escala de um mês/ano específico.
+    *   `POST /api/schedule`: Salva a escala de um mês/ano.
 
-O banco de dados SQLite (`database.sqlite`) é armazenado na pasta `database/`. Se você apagar este arquivo, todos os seus dados serão perdidos.
+*   **Histórico:**
+    *   `GET /api/history`: Lista o histórico de escalas salvas.
+    *   `POST /api/history`: Salva uma escala no histórico.
+    *   `GET /api/history/:id`: Obtém uma escala específica do histórico.
+    *   `DELETE /api/history/:id`: Remove uma entrada do histórico.
 
-Ao usar Docker Compose, o volume `backend_data` é configurado para persistir este arquivo, garantindo que seus dados não sejam perdidos mesmo se os contêineres forem removidos e recriados.
+*   **Configurações:**
+    *   `GET /api/config`: Obtém as configurações do sistema (nome da empresa, departamento, etc.).
+    *   `PUT /api/config`: Atualiza as configurações do sistema.
 
-## Variáveis de Ambiente
+## Banco de Dados
 
-O backend pode usar variáveis de ambiente para configuração, embora este projeto use principalmente configurações internas ou via API. Para portas, o `server.js` define a porta 3001.
+O banco de dados é um arquivo SQLite chamado `database.db` que será criado na raiz da pasta `backend`. Ele contém as tabelas para `professionals`, `schedules`, `history` e `config`.
 
-## Solução de Problemas
+## Scripts Úteis
 
--   **"Port 3001 already in use"**: Outro processo está usando a porta 3001. Você pode parar o outro processo ou alterar a porta no `server.js`.
--   **Erros de banco de dados**: Verifique se você executou `npm run init-db` pelo menos uma vez.
--   **Erros de CORS**: Certifique-se de que o middleware `cors()` está configurado corretamente no `server.js` para permitir requisições do seu frontend.
+*   `npm run init-db`: Executa o script para inicializar as tabelas do banco de dados.
+*   `npm start`: Inicia o servidor Express.

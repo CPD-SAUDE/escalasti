@@ -1,60 +1,49 @@
-"use client"
+'use client'
 
-import * as React from "react"
-import { Check, Palette } from 'lucide-react'
-
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
+import * as React from 'react'
+import { SketchPicker, ColorResult } from 'react-color'
+import { Button } from '@/components/ui/button'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { cn } from '@/lib/utils'
 
 interface ProfessionalColorPickerProps {
   color: string
-  setColor: (color: string) => void
+  onChange: (color: string) => void
+  className?: string
 }
 
-const colors = [
-  "#FF6B6B", "#4ECDC4", "#45B7D1", "#FFA07A", "#98D8AA",
-  "#FFD700", "#DA70D6", "#87CEEB", "#F08080", "#ADD8E6",
-  "#FFB6C1", "#90EE90", "#DDA0DD", "#AFEEEE", "#FFC0CB",
-  "#7B68EE", "#EE82EE", "#6A5ACD", "#BA55D3", "#4682B4"
-]
+export function ProfessionalColorPicker({ color, onChange, className }: ProfessionalColorPickerProps) {
+  const [displayColorPicker, setDisplayColorPicker] = React.useState(false)
 
-export function ProfessionalColorPicker({ color, setColor }: ProfessionalColorPickerProps) {
+  const handleClick = () => {
+    setDisplayColorPicker(!displayColorPicker)
+  }
+
+  const handleClose = () => {
+    setDisplayColorPicker(false)
+  }
+
+  const handleChange = (newColor: ColorResult) => {
+    onChange(newColor.hex)
+  }
+
   return (
-    <Popover>
+    <Popover open={displayColorPicker} onOpenChange={setDisplayColorPicker}>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
-          className="w-full justify-start text-left font-normal"
+          className={cn('w-full justify-start text-left font-normal', className)}
+          onClick={handleClick}
         >
           <div
-            className="w-4 h-4 rounded-full mr-2 border"
+            className="w-6 h-6 rounded-full mr-2 border"
             style={{ backgroundColor: color }}
           />
-          <span>{color}</span>
-          <Palette className="ml-auto h-4 w-4 opacity-50" />
+          {color}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0">
-        <div className="grid grid-cols-5 gap-2 p-2">
-          {colors.map((c) => (
-            <div
-              key={c}
-              className={cn(
-                "w-8 h-8 rounded-full cursor-pointer flex items-center justify-center border",
-                color === c && "ring-2 ring-offset-2 ring-primary"
-              )}
-              style={{ backgroundColor: c }}
-              onClick={() => setColor(c)}
-            >
-              {color === c && <Check className="h-4 w-4 text-white" />}
-            </div>
-          ))}
-        </div>
+        <SketchPicker color={color} onChange={handleChange} />
       </PopoverContent>
     </Popover>
   )

@@ -1,66 +1,77 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { CircleCheck, CircleX } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { CircleCheck, CircleX, Loader2 } from 'lucide-react'
 
 export function ApiStatus() {
-  const [isOnline, setIsOnline] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
-  const [lastCheck, setLastCheck] = useState<string | null>(null)
-
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'
+  const [status, setStatus] = useState<'loading' | 'online' | 'offline'>('loading')
+  const [message, setMessage] = useState('Verificando status da API...')
 
   useEffect(() => {
     const checkApiStatus = async () => {
-      setIsLoading(true)
       try {
-        const response = await fetch(`${API_URL}/status`, { signal: AbortSignal.timeout(5000) }) // 5 second timeout
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'
+        const response = await fetch(`${apiUrl}/status`)
         if (response.ok) {
-          setIsOnline(true)
+          const data = await response.json()
+          setStatus('online')
+          setMessage(data.message || 'API Online')
         } else {
-          setIsOnline(false)
+          setStatus('offline')
+          setMessage('API Offline: Erro ao conectar ou resposta inesperada.')
         }
       } catch (error) {
+        setStatus('offline')
+        setMessage('API Offline: Não foi possível conectar ao servidor.')
         console.error('Erro ao verificar status da API:', error)
-        setIsOnline(false)
-      } finally {
-        setIsLoading(false)
-        setLastCheck(new Date().toLocaleTimeString())
       }
     }
 
     checkApiStatus()
-    const interval = setInterval(checkApiStatus, 30000); // Check every 30 seconds
+    const interval = setInterval(checkApiStatus, 30000); // Verifica a cada 30 segundos
 
     return () => clearInterval(interval);
-  }, [API_URL])
+  }, [])
 
-  const statusText = isLoading
-    ? 'Verificando API...'
-    : isOnline
-      ? 'API Online'
-      : 'API Offline'
+  const getStatusIcon = () => {
+    switch (status) {
+      case 'loading':
+        return <Loader2 className="h-4 w-4 animate-spin" />
+      case 'online':
+        return <CircleCheck className="h-4 w-4" />
+      case 'offline':
+        return <CircleX className="h-4 w-4" />
+      default:
+        return null
+    }
+  }
 
-  const statusIcon = isOnline ? (
-    <CircleCheck className="h-5 w-5 text-green-500" />
-  ) : (
-    <CircleX className="h-5 w-5 text-red-500" />
-  )
+  const getStatusColor = () => {
+    switch (status) {
+      case 'loading':
+        return 'bg-yellow-500 hover:bg-yellow-500/80'
+      case 'online':
+        return 'bg-green-500 hover:bg-green-500/80'
+      case 'offline':
+        return 'bg-red-500 hover:bg-red-500/80'
+      default:
+        return ''
+    }
+  }
 
   return (
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <div className="flex items-center gap-2 text-sm">
-            {statusIcon}
-            <span className="hidden sm:inline">{statusText}</span>
-          </div>
+          <Badge className={`flex items-center gap-1 ${getStatusColor()}`}>
+            {getStatusIcon()}
+            {status === 'loading' ? 'Verificando...' : status === 'online' ? 'Online' : 'Offline'}
+          </Badge>
         </TooltipTrigger>
         <TooltipContent>
-          <p>{statusText}</p>
-          {lastCheck && <p>Última verificação: {lastCheck}</p>}
-          {!isOnline && <p>Verifique se o backend está rodando em {API_URL}</p>}
+          <p>{message}</p>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>

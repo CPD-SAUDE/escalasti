@@ -1,42 +1,39 @@
-# Estágio 1: Construção da aplicação Next.js
-FROM node:20-alpine AS builder
+# Dockerfile para o Frontend (Next.js)
+
+# Fase de Build
+FROM node:18-alpine AS builder
 
 WORKDIR /app
 
-# Copia os arquivos package.json e package-lock.json
-COPY package*.json ./
+# Copia package.json e package-lock.json para instalar dependências
+COPY package.json yarn.lock* package-lock.json* ./
 
-# Instala as dependências do Node.js
-RUN npm install
+# Instala as dependências
+RUN npm install --force --no-package-lock --omit=dev
 
-# Copia o restante do código da aplicação
+# Copia o restante do código-fonte
 COPY . .
-
-# Define a variável de ambiente NEXT_PUBLIC_API_URL para o processo de build
-# Isso garante que o frontend saiba onde encontrar o backend durante a construção
-ENV NEXT_PUBLIC_API_URL=http://backend:3001/api
 
 # Constrói a aplicação Next.js para produção
 RUN npm run build
 
-# Estágio 2: Execução da aplicação Next.js
-FROM node:20-alpine AS runner
+# Fase de Produção
+FROM node:18-alpine AS runner
 
 WORKDIR /app
 
-# Copia os arquivos de build do estágio anterior
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/node_modules ./node_modules
+# Define o usuário não-root para segurança
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+
 COPY --from=builder /app/public ./public
-COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
 
-# Define as variáveis de ambiente para o tempo de execução
-# O frontend se conectará ao serviço 'backend' dentro da rede Docker
-ENV NEXT_PUBLIC_API_URL=http://backend:3001/api
-ENV PORT=3000
+USER nextjs
 
-# Expõe a porta em que o frontend será executado
 EXPOSE 3000
 
-# Comando para iniciar a aplicação em modo de produção
-CMD ["npm", "start"]
+ENV PORT 3000
+
+CMD ["node", "server.js"]

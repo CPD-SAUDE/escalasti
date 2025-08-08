@@ -1,103 +1,72 @@
-import { useState, useEffect, useCallback } from 'react'
-import { ScheduleEntry, Professional, Config } from '@/lib/types'
+'use client'
 
-interface HistoryEntry {
+import { useState, useEffect, useCallback } from 'react'
+import { api } from '@/lib/api'
+import { toast } from 'sonner'
+
+interface HistoryItem {
   id: number
   year: number
   month: number
   monthYear: string
-  scheduleData: ScheduleEntry[]
-  summaryData: { professional: Professional; totalHours: number }[]
-  companyName: string
-  departmentName: string
-  systemName: string
-  savedAt: string
+  scheduleData: string // JSON string
+  summaryData: string // JSON string
+  companyName: string | null
+  departmentName: string | null
+  systemName: string | null
+  savedAt: string // ISO string
 }
 
 export function useHistory() {
-  const [history, setHistory] = useState<HistoryEntry[]>([])
+  const [history, setHistory] = useState<HistoryItem[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<Error | null>(null)
-
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'
+  const [error, setError] = useState<string | null>(null)
 
   const fetchHistory = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
-      const response = await fetch(`${API_URL}/history`)
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-      const data = await response.json()
-      setHistory(data)
-    } catch (e) {
-      setError(e as Error)
-      console.error("Failed to fetch history:", e)
+      const response = await api.get('/history')
+      setHistory(response.data)
+    } catch (err: any) {
+      console.error('Erro ao buscar histórico:', err)
+      setError(err.message || 'Erro ao carregar histórico.')
+      toast.error('Erro ao carregar histórico.')
     } finally {
       setLoading(false)
     }
-  }, [API_URL])
+  }, [])
 
-  const saveSchedule = useCallback(async (
-    year: number,
-    month: number,
-    scheduleData: ScheduleEntry[],
-    summaryData: { professional: Professional; totalHours: number }[],
-    companyName: string,
-    departmentName: string,
-    systemName: string
-  ) => {
-    setLoading(true)
-    setError(null)
+  const saveHistory = useCallback(async (data: Omit<HistoryItem, 'id' | 'savedAt'>) => {
     try {
-      const response = await fetch(`${API_URL}/history`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ year, month, scheduleData, summaryData, companyName, departmentName, systemName }),
-      })
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-      const data = await response.json()
-      fetchHistory() // Refresh history after saving
-      return data
-    } catch (e) {
-      setError(e as Error)
-      console.error("Failed to save schedule:", e)
-      throw e;
-    } finally {
-      setLoading(false)
+      const response = await api.post('/history', data)
+      toast.success('Histórico salvo com sucesso!')
+      fetchHistory() // Recarrega o histórico após salvar
+      return response.data
+    } catch (err: any) {
+      console.error('Erro ao salvar histórico:', err)
+      setError(err.message || 'Erro ao salvar histórico.')
+      toast.error('Erro ao salvar histórico.')
+      throw err
     }
-  }, [API_URL, fetchHistory])
+  }, [fetchHistory])
 
-  const deleteHistoryEntry = useCallback(async (id: number) => {
-    setLoading(true)
-    setError(null)
+  const deleteHistoryItem = useCallback(async (id: number) => {
     try {
-      const response = await fetch(`${API_URL}/history/${id}`, {
-        method: 'DELETE',
-      })
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-      const data = await response.json()
-      fetchHistory() // Refresh history after deleting
-      return data
-    } catch (e) {
-      setError(e as Error)
-      console.error("Failed to delete history entry:", e)
-      throw e;
-    } finally {
-      setLoading(false)
+      await api.delete(`/history/${id}`)
+      toast.success('Item do histórico deletado com sucesso!')
+      setHistory(prevHistory => prevHistory.filter(item => item.id !== id)) // Remove da lista localmente
+    } catch (err: any) {
+      console.error('Erro ao deletar item do histórico:', err)
+      setError(err.message || 'Erro ao deletar item do histórico.')
+      toast.error('Erro ao deletar item do histórico.')
+      throw err
     }
-  }, [API_URL, fetchHistory])
+  }, [])
 
   useEffect(() => {
     fetchHistory()
   }, [fetchHistory])
 
-  return { history, fetchHistory, saveSchedule, deleteHistoryEntry, loading, error }
+  return { history, loading, error, fetchHistory, saveHistory, deleteHistoryItem }
 }
