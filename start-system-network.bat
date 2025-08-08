@@ -45,3 +45,28 @@ echo O frontend estara disponivel em http://localhost:3000
 echo O backend estara disponivel em http://%NETWORK_IP%:3001
 echo.
 pause
+
+REM Iniciando o sistema via Docker Compose...
+echo Iniciando o sistema via Docker Compose...
+
+:: Este script assume que você está na raiz do projeto onde o docker-compose.yml está.
+
+:: Constrói e inicia os serviços em segundo plano
+docker compose up --build -d
+
+if %errorlevel% neq 0 (
+    echo Erro ao iniciar o sistema Docker.
+    echo Verifique se o Docker Desktop está rodando e se não há conflitos de porta.
+    pause
+    exit /b %errorlevel%
+)
+
+echo.
+echo Sistema iniciado com sucesso!
+echo O frontend deve estar acessível em http://localhost:3000
+echo O backend deve estar acessível em http://localhost:3001
+echo.
+echo Para parar o sistema, execute: docker compose down
+echo.
+
+pause

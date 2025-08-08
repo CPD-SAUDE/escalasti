@@ -1,20 +1,19 @@
 @echo off
 echo Iniciando o backend...
 
-REM Navega para o diretório do backend
+:: Navega para o diretório do backend
 cd backend
 
-REM Instala as dependências (se ainda não o fez)
+:: Instala as dependências (se ainda não estiverem instaladas)
 echo Instalando dependências do backend...
-call npm install
+npm install
 
-REM Inicializa o banco de dados (cria as tabelas se não existirem)
+:: Inicializa o banco de dados (cria o arquivo e tabelas se não existirem)
 echo Inicializando o banco de dados...
-call npm run init-db
+npm run init-db
 
-REM Inicia o servidor backend
+:: Inicia o servidor backend
 echo Iniciando o servidor backend...
-call npm start
+npm start
 
-echo Backend iniciado.
 pause

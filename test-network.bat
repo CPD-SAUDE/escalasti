@@ -1,22 +1,29 @@
 @echo off
 echo Testando a conectividade de rede...
 
-REM Este script tenta pingar um endereco IP para verificar a conectividade.
-REM Pode ser usado para diagnosticar problemas de rede entre containers ou maquinas.
+:: Este script é um exemplo simples para verificar a conectividade.
+:: Ele tenta pingar um site externo e o localhost.
 
-REM Define o endereco IP para testar (pode ser o IP do backend ou outro)
-set TEST_IP=127.0.0.1
-REM Ou, se quiser testar o IP da rede:
-REM for /f "delims=" %%i in ('node backend\scripts\get-network-ip.js') do set TEST_IP=%%i
-
-echo Tentando pingar %TEST_IP%...
-
-ping %TEST_IP% -n 4
-
+echo.
+echo Testando ping para google.com...
+ping -n 1 google.com > NUL
 if %errorlevel% equ 0 (
-    echo Conectividade com %TEST_IP% OK.
+    echo Conectividade externa OK.
 ) else (
-    echo ERRO: Nao foi possivel conectar a %TEST_IP%. Verifique sua configuracao de rede.
+    echo Erro: Nao foi possivel pingar google.com. Verifique sua conexao com a internet.
 )
+
+echo.
+echo Testando ping para localhost (127.0.0.1)...
+ping -n 1 127.0.0.1 > NUL
+if %errorlevel% equ 0 (
+    echo Conectividade local OK.
+) else (
+    echo Erro: Nao foi possivel pingar localhost.
+)
+
+echo.
+echo Se estiver usando Docker, verifique tambem a rede interna do Docker.
+echo.
 
 pause

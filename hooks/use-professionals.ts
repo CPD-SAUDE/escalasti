@@ -1,89 +1,77 @@
-import { useState, useEffect, useCallback } from 'react'
-import {
-  fetchProfessionals,
-  addProfessional as apiAddProfessional,
-  updateProfessional as apiUpdateProfessional,
-  deleteProfessional as apiDeleteProfessional,
-} from '@/lib/api'
-import { Professional } from '@/lib/types'
+import { useState, useEffect, useCallback } from 'react';
+import { getAllProfessionals, addProfessional, updateProfessional, deleteProfessional } from '@/lib/api';
+import { Professional } from '@/lib/types';
 
 export function useProfessionals() {
-  const [professionals, setProfessionals] = useState<Professional[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<Error | null>(null)
+  const [professionals, setProfessionals] = useState<Professional[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const loadProfessionals = useCallback(async () => {
-    setIsLoading(true)
-    setError(null)
+  const fetchProfessionals = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
     try {
-      const data = await fetchProfessionals()
-      setProfessionals(data)
-    } catch (err: any) {
-      setError(err)
-      console.error('Failed to fetch professionals:', err)
+      const data = await getAllProfessionals();
+      setProfessionals(data);
+    } catch (err) {
+      setError('Erro ao carregar profissionais.');
+      console.error(err);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }, [])
+  }, []);
 
   useEffect(() => {
-    loadProfessionals()
-  }, [loadProfessionals])
+    fetchProfessionals();
+  }, [fetchProfessionals]);
 
-  const addProfessional = useCallback(
-    async (name: string, color: string) => {
-      setError(null)
-      try {
-        const newProfessional = await apiAddProfessional(name, color)
-        setProfessionals((prev) => [...prev, newProfessional])
-      } catch (err: any) {
-        setError(err)
-        console.error('Failed to add professional:', err)
-        throw err
-      }
-    },
-    [],
-  )
+  const addProf = useCallback(async (professional: Omit<Professional, 'id'>) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      await addProfessional(professional);
+      await fetchProfessionals(); // Recarrega a lista após adicionar
+      return true;
+    } catch (err) {
+      setError('Erro ao adicionar profissional.');
+      console.error(err);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [fetchProfessionals]);
 
-  const updateProfessional = useCallback(
-    async (id: number, name: string, color: string) => {
-      setError(null)
-      try {
-        const updatedProfessional = await apiUpdateProfessional(id, name, color)
-        setProfessionals((prev) =>
-          prev.map((p) => (p.id === id ? updatedProfessional : p)),
-        )
-      } catch (err: any) {
-        setError(err)
-        console.error('Failed to update professional:', err)
-        throw err
-      }
-    },
-    [],
-  )
+  const updateProf = useCallback(async (id: number, professional: Omit<Professional, 'id'>) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      await updateProfessional(id, professional);
+      await fetchProfessionals(); // Recarrega a lista após atualizar
+      return true;
+    } catch (err) {
+      setError('Erro ao atualizar profissional.');
+      console.error(err);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [fetchProfessionals]);
 
-  const deleteProfessional = useCallback(
-    async (id: number) => {
-      setError(null)
-      try {
-        await apiDeleteProfessional(id)
-        setProfessionals((prev) => prev.filter((p) => p.id !== id))
-      } catch (err: any) {
-        setError(err)
-        console.error('Failed to delete professional:', err)
-        throw err
-      }
-    },
-    [],
-  )
+  const deleteProf = useCallback(async (id: number) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      await deleteProfessional(id);
+      await fetchProfessionals(); // Recarrega a lista após deletar
+      return true;
+    } catch (err) {
+      setError('Erro ao remover profissional.');
+      console.error(err);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [fetchProfessionals]);
 
-  return {
-    professionals,
-    isLoading,
-    error,
-    addProfessional,
-    updateProfessional,
-    deleteProfessional,
-    refetch: loadProfessionals,
-  }
+  return { professionals, isLoading, error, addProf, updateProf, deleteProf, refetchProfessionals: fetchProfessionals };
 }

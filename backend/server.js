@@ -5,6 +5,7 @@ const bodyParser = require('body-parser');
 const path = require('path');
 const os = require('os');
 const db = require('./database/database'); // Importa a instância única do banco de dados
+require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 
 // Importar rotas
 const professionalsRoutes = require('./routes/professionals');
@@ -47,23 +48,9 @@ app.use('/api/schedule', scheduleRoutes);
 app.use('/api/history', historyRoutes);
 app.use('/api/config', configRoutes);
 
-// Rota básica para teste
-app.get('/', (req, res) => {
-  res.send('Backend do Sistema de Escala de Sobreaviso está online!');
-});
-
 // Rota de status da API
 app.get('/api/status', (req, res) => {
-  const localIP = getLocalIP();
-  res.json({
-    status: 'OK',
-    message: 'Sistema de Escala de Sobreaviso - Backend funcionando',
-    timestamp: new Date().toISOString(),
-    version: '1.0.0',
-    server_ip: localIP,
-    port: PORT,
-    network_access: `http://${localIP}:${PORT}`
-  });
+  res.json({ status: 'Backend is running!', timestamp: new Date() });
 });
 
 // Catch-all para rotas /api que não foram tratadas por nenhum endpoint específico

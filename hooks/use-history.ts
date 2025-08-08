@@ -1,29 +1,61 @@
-import { useState, useEffect, useCallback } from 'react'
-import { fetchHistory as apiFetchHistory } from '@/lib/api'
-import { HistoryEntry } from '@/lib/types'
+import { useState, useEffect, useCallback } from 'react';
+import { getAllHistory, addHistoryEntry, deleteHistoryEntry } from '@/lib/api';
+import { HistoryEntry } from '@/lib/types';
 
 export function useHistory() {
-  const [history, setHistory] = useState<HistoryEntry[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<Error | null>(null)
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchHistory = useCallback(async () => {
-    setIsLoading(true)
-    setError(null)
+    setIsLoading(true);
+    setError(null);
     try {
-      const data = await apiFetchHistory()
-      setHistory(data)
-    } catch (err: any) {
-      setError(err)
-      console.error('Failed to fetch history:', err)
+      const data = await getAllHistory();
+      setHistory(data);
+    } catch (err) {
+      setError('Erro ao carregar histórico.');
+      console.error(err);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }, [])
+  }, []);
 
   useEffect(() => {
-    fetchHistory()
-  }, [fetchHistory])
+    fetchHistory();
+  }, [fetchHistory]);
 
-  return { history, isLoading, error, fetchHistory }
+  const addEntry = useCallback(async (entry: Omit<HistoryEntry, 'id'>) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      await addHistoryEntry(entry);
+      await fetchHistory(); // Recarrega o histórico após adicionar
+      return true;
+    } catch (err) {
+      setError('Erro ao adicionar entrada de histórico.');
+      console.error(err);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [fetchHistory]);
+
+  const deleteEntry = useCallback(async (id: number) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      await deleteHistoryEntry(id);
+      await fetchHistory(); // Recarrega o histórico após deletar
+      return true;
+    } catch (err) {
+      setError('Erro ao remover entrada de histórico.');
+      console.error(err);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [fetchHistory]);
+
+  return { history, isLoading, error, addEntry, deleteEntry, refetchHistory: fetchHistory };
 }

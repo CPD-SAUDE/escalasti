@@ -1,21 +1,22 @@
 export interface Professional {
-  id: number
-  name: string
-  color: string
+  id: number;
+  name: string;
+  color: string;
 }
 
-export interface ScheduleData {
-  [day: number]: number | null // day (1-31) maps to professional ID or null
+export interface ScheduleEntry {
+  id: number;
+  date: string; // Formato 'YYYY-MM-DD'
+  professionalId: number | null; // Pode ser null se o dia estiver vazio
 }
 
 export interface HistoryEntry {
-  id: number
-  action: string
-  details: any // JSON stringified details
-  timestamp: string // ISO 8601 string
+  id: number;
+  date: string; // Formato 'YYYY-MM-DD'
+  description: string;
 }
 
 export interface Config {
-  id: number
-  api_url: string
+  id: number;
+  holidays: string[]; // Array de datas em formato 'YYYY-MM-DD'
 }

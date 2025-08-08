@@ -1,61 +1,48 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { CircleCheck, CircleX, Loader2 } from 'lucide-react'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { CircleCheck, CircleX } from 'lucide-react'
+import { getApiStatus } from '@/lib/api'
 
-export default function ApiStatus() {
+export function ApiStatus() {
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
   const [message, setMessage] = useState('Verificando status da API...')
 
   useEffect(() => {
-    const checkApiStatus = async () => {
+    const checkStatus = async () => {
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'
-        const response = await fetch(apiUrl.replace('/api', '/')) // Acessa a rota raiz do backend
-        if (response.ok) {
+        const response = await getApiStatus()
+        if (response.status === 'Backend is running!') {
           setStatus('success')
-          setMessage('API online')
+          setMessage('API do Backend está online.')
         } else {
           setStatus('error')
-          setMessage(`API offline: ${response.status} ${response.statusText}`)
+          setMessage('API do Backend retornou um status inesperado.')
         }
-      } catch (error: any) {
+      } catch (error) {
+        console.error('Erro ao verificar status da API:', error)
         setStatus('error')
-        setMessage(`API offline: ${error.message}`)
+        setMessage('Não foi possível conectar à API do Backend. Verifique se o backend está rodando.')
       }
     }
 
-    checkApiStatus()
-    const interval = setInterval(checkApiStatus, 10000) // Verifica a cada 10 segundos
-
-    return () => clearInterval(interval)
+    checkStatus()
+    const interval = setInterval(checkStatus, 15000); // Verifica a cada 15 segundos
+    return () => clearInterval(interval);
   }, [])
 
-  const getIcon = () => {
-    switch (status) {
-      case 'loading':
-        return <Loader2 className="h-4 w-4 animate-spin text-gray-500" />
-      case 'success':
-        return <CircleCheck className="h-4 w-4 text-green-500" />
-      case 'error':
-        return <CircleX className="h-4 w-4 text-red-500" />
-    }
-  }
-
   return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <div className="flex items-center gap-2">
-            {getIcon()}
-            <span className="sr-only">{message}</span>
-          </div>
-        </TooltipTrigger>
-        <TooltipContent>
-          <p>{message}</p>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+    <Alert variant={status === 'success' ? 'default' : 'destructive'} className="w-fit px-4 py-2">
+      {status === 'success' ? (
+        <CircleCheck className="h-4 w-4 text-green-500" />
+      ) : (
+        <CircleX className="h-4 w-4 text-red-500" />
+      )}
+      <AlertTitle className="text-sm font-medium">Status da API</AlertTitle>
+      <AlertDescription className="text-xs">
+        {message}
+      </AlertDescription>
+    </Alert>
   )
 }

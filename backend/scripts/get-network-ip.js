@@ -1,21 +1,20 @@
-const os = require('os')
+// Este script não é usado diretamente no Docker Compose, mas pode ser útil para depuração local.
+// Ele tenta obter o IP da rede local.
+
+const os = require('os');
 
 function getNetworkIp() {
-  const interfaces = os.networkInterfaces()
-  for (const devName in interfaces) {
-    const iface = interfaces[devName]
-    for (let i = 0; i < iface.length; i++) {
-      const alias = iface[i]
-      if (
-        alias.family === 'IPv4' &&
-        alias.address !== '127.0.0.1' &&
-        !alias.internal
-      ) {
-        return alias.address
-      }
+    const interfaces = os.networkInterfaces();
+    for (const devName in interfaces) {
+        const iface = interfaces[devName];
+        for (let i = 0; i < iface.length; i++) {
+            const alias = iface[i];
+            if (alias.family === 'IPv4' && alias.address !== '127.0.0.1' && !alias.internal) {
+                return alias.address;
+            }
+        }
     }
-  }
-  return '0.0.0.0'
+    return '0.0.0.0'; // Fallback
 }
 
-console.log(getNetworkIp())
+console.log(getNetworkIp());

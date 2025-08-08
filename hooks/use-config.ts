@@ -1,45 +1,45 @@
-import { useState, useEffect, useCallback } from 'react'
-import { fetchConfig, updateConfig as apiUpdateConfig } from '@/lib/api'
-import { Config } from '@/lib/types'
+import { useState, useEffect, useCallback } from 'react';
+import { getConfig, updateConfig } from '@/lib/api';
+import { Config } from '@/lib/types';
 
 export function useConfig() {
-  const [config, setConfig] = useState<Config | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<Error | null>(null)
+  const [config, setConfig] = useState<Config | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const loadConfig = useCallback(async () => {
-    setIsLoading(true)
-    setError(null)
+  const fetchConfig = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
     try {
-      const data = await fetchConfig()
-      setConfig(data)
-    } catch (err: any) {
-      setError(err)
-      console.error('Failed to fetch config:', err)
+      const data = await getConfig();
+      setConfig(data);
+    } catch (err) {
+      setError('Erro ao carregar configurações.');
+      console.error(err);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }, [])
+  }, []);
 
   useEffect(() => {
-    loadConfig()
-  }, [loadConfig])
+    fetchConfig();
+  }, [fetchConfig]);
 
-  const updateConfig = useCallback(
-    async (newConfig: Partial<Config>) => {
-      setError(null)
-      try {
-        const updated = await apiUpdateConfig(newConfig)
-        setConfig(updated)
-        return updated
-      } catch (err: any) {
-        setError(err)
-        console.error('Failed to update config:', err)
-        throw err
-      }
-    },
-    [],
-  )
+  const saveConfig = useCallback(async (newConfig: Config) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      await updateConfig(newConfig);
+      setConfig(newConfig); // Atualiza o estado local após sucesso
+      return true;
+    } catch (err) {
+      setError('Erro ao salvar configurações.');
+      console.error(err);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
-  return { config, isLoading, error, updateConfig, refetch: loadConfig }
+  return { config, isLoading, error, saveConfig, refetchConfig: fetchConfig };
 }

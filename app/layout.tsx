@@ -1,13 +1,13 @@
-import type { Metadata } from 'next'
+import type { Metadata } from "next"
 import { Inter } from 'next/font/google'
-import './globals.css'
-import { ThemeProvider } from '@/components/theme-provider'
+import "./globals.css"
+import { ThemeProvider } from "@/components/theme-provider"
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: 'Sistema de Escala de Sobreaviso',
-  description: 'Sistema para gerenciar escalas de sobreaviso de profissionais.',
+  title: "Sistema de Escala de Sobreaviso",
+  description: "Sistema para gerenciar escalas de sobreaviso",
     generator: 'v0.dev'
 }
 

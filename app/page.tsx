@@ -27,7 +27,7 @@ import Image from "next/image";
 
 export default function Home() {
   const [activeProfessionalIds, setActiveProfessionalIds] = useState<string[]>([]);
-  const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
+  const [selectedMonth, setSelectedMonth] = useState<Date>(new Date());
   const [isPrintPreviewActive, setIsPrintPreviewActive] = useState(false); // Renamed state
 
   const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
@@ -52,7 +52,7 @@ export default function Home() {
     updateSchedule,
     isLoading: isLoadingSchedule,
     error: errorSchedule,
-  } = useSchedule(currentMonth.getFullYear(), currentMonth.getMonth() + 1);
+  } = useSchedule(selectedMonth.getFullYear(), selectedMonth.getMonth() + 1);
   const {
     history,
     isLoading: isLoadingHistory,
@@ -126,24 +126,24 @@ export default function Home() {
   };
 
   const handlePrevMonth = async () => {
-    setCurrentMonth(prev => subMonths(prev, 1));
+    setSelectedMonth(prev => subMonths(prev, 1));
   };
 
   const handleNextMonth = async () => {
-    setCurrentMonth(prev => addMonths(prev, 1));
+    setSelectedMonth(prev => addMonths(prev, 1));
   };
 
   const handleGoToMonth = (date: Date) => {
-    setCurrentMonth(date);
+    setSelectedMonth(date);
   };
 
   const handleGoToCurrentMonth = () => {
-    setCurrentMonth(new Date());
+    setSelectedMonth(new Date());
   };
 
   const generateAutomaticSchedule = async () => {
-    const start = startOfMonth(currentMonth);
-    const end = endOfMonth(currentMonth);
+    const start = startOfMonth(selectedMonth);
+    const end = endOfMonth(selectedMonth);
     const daysInMonth = eachDayOfInterval({ start, end });
 
     const activeProfessionals = professionals.filter(p => activeProfessionalIds.includes(p.id));
@@ -199,7 +199,7 @@ export default function Home() {
   };
 
   const createScheduleRecord = async () => {
-    const monthYear = format(currentMonth, "yyyy-MM");
+    const monthYear = format(selectedMonth, "yyyy-MM");
 
     try {
       const scheduleData: ScheduleEntry[] = schedule.map(entry => ({
@@ -215,7 +215,7 @@ export default function Home() {
         professionals_data: professionals,
       });
 
-      alert(`Escala para ${format(currentMonth, "MMMM 'de' yyyy", { locale: ptBR })} salva no histórico!`);
+      alert(`Escala para ${format(selectedMonth, "MMMM 'de' yyyy", { locale: ptBR })} salva no histórico!`);
     } catch (error) {
       console.error('Erro ao salvar no histórico:', error);
       alert("Erro ao salvar no histórico. Tente novamente.");
@@ -223,7 +223,7 @@ export default function Home() {
   };
 
   const loadHistoricalSchedule = (record: any) => {
-    setCurrentMonth(parseISO(record.month_year + "-01"));
+    setSelectedMonth(parseISO(record.month_year + "-01"));
     setHistoricalProfessionals(record.professionals_data);
 
     const entriesWithProfessional: ScheduleEntryWithProfessional[] = record.schedule_data.map((entry: any) => {
@@ -258,7 +258,7 @@ export default function Home() {
 
   const professionalHoursSummary = useMemo(() => {
     const summary: { [key: string]: number } = {};
-    const currentMonthYearFormatted = format(currentMonth, "yyyy-MM");
+    const currentMonthYearFormatted = format(selectedMonth, "yyyy-MM");
 
     displayedScheduleEntries.forEach(entry => {
       const entryMonthYear = format(parseISO(entry.date), "yyyy-MM");
@@ -267,7 +267,7 @@ export default function Home() {
       }
     });
     return summary;
-  }, [displayedScheduleEntries, currentMonth]);
+  }, [displayedScheduleEntries, selectedMonth]);
 
   if (isLoading) {
     return (
@@ -281,155 +281,105 @@ export default function Home() {
   }
 
   return (
-    <div className={cn("min-h-screen bg-background", isPrintPreviewActive && "print-preview-active-body-wrapper")}> {/* Add wrapper class */}
+    <div className={cn("flex flex-col min-h-screen bg-gray-100 dark:bg-gray-900", isPrintPreviewActive && "print-preview-active-body-wrapper")}> {/* Add wrapper class */}
       {/* Main content, hidden when in print preview */}
-      <div className={cn("container mx-auto py-8", isPrintPreviewActive && "hidden")}>
-        {/* Cabeçalho com logo */}
-        <div className="flex flex-col items-center justify-center mb-6">
-          <div className="w-40 h-auto mb-2">
-            <Image 
-              src="/images/logo.png" 
-              alt="Logo Chapadão do Céu" 
-              width={160} 
-              height={100} 
-              priority
-            />
-          </div>
-          <h1 className="text-2xl font-bold text-center">SECRETARIA MUNICIPAL DE SAÚDE DE CHAPADÃO DO CÉU</h1>
-          <h2 className="text-xl font-semibold text-center">DEPARTAMENTO DE INFORMÁTICA</h2>
-          <h3 className="text-lg mt-4">Sistema de Escala de Sobreaviso - TI</h3>
-        </div>
-
+      <header className="bg-white dark:bg-gray-800 shadow-sm py-4 px-6 flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-50">Sistema de Escala de Sobreaviso</h1>
         <ApiStatus />
-
-        {error && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertDescription>
-              {error.message}
-            </AlertDescription>
-          </Alert>
-        )}
-
-        <Tabs defaultValue="schedule" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 mb-6">
-            <TabsTrigger value="schedule">Gerenciar Escala</TabsTrigger>
-            <TabsTrigger value="summary">Resumo da Escala</TabsTrigger>
-            <TabsTrigger value="professionals">Gerenciar Profissionais</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="schedule" className="mt-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex justify-between items-center">
-                  <MonthSelector
-                    currentMonth={currentMonth}
-                    onPrevMonth={handlePrevMonth}
-                    onNextMonth={handleNextMonth}
-                    onGoToMonth={handleGoToMonth}
-                    onGoToCurrentMonth={handleGoToCurrentMonth}
-                  />
-                  <div className="flex space-x-2">
-                    <Select value={scheduleGenerationMode} onValueChange={(value: 'daily' | 'weekly') => setScheduleGenerationMode(value)}>
-                      <SelectTrigger className="w-[180px]">
-                        <SelectValue placeholder="Modo de Geração" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="daily">Rotação Diária</SelectItem>
-                        <SelectItem value="weekly">Rotação Semanal</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    {/* NOVO: Seleção do profissional que inicia a escala */}
-                    <Select
-                      value={startingProfessionalId || ''}
-                      onValueChange={setStartingProfessionalId}
-                      disabled={activeProfessionalIds.length === 0}
-                    >
-                      <SelectTrigger className="w-[180px]">
-                        <SelectValue placeholder="Começar com..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {activeProfessionalIds.map(profId => {
-                          const prof = professionals.find(p => p.id === profId);
-                          return prof ? (
-                            <SelectItem key={prof.id} value={prof.id}>
-                              {prof.name}
-                            </SelectItem>
-                          ) : null;
-                        })}
-                      </SelectContent>
-                    </Select>
-                    <Button 
-                      onClick={generateAutomaticSchedule} 
-                      disabled={activeProfessionalIds.length === 0 || isLoadingSchedule || !startingProfessionalId}
-                    >
-                      {isLoadingSchedule ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                          Gerando...
-                        </>
-                      ) : (
-                        'Gerar Escala Automática'
-                      )}
-                    </Button>
-                    <Button 
-                      onClick={createScheduleRecord}
-                      disabled={schedule.length === 0 || isLoadingHistory}
-                    >
-                      {isLoadingHistory ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                          Salvando...
-                        </>
-                      ) : (
-                        'Criar Registro de Escala'
-                      )}
-                    </Button>
-                    <Button onClick={handleOpenHistoryDialog} variant="outline" size="sm">
-                      <History className="mr-2 h-4 w-4" />
-                      Histórico
-                    </Button>
-                    <Button onClick={handlePrintPreview}> {/* Changed to handlePrintPreview */}
-                      Visualizar Impressão
-                    </Button>
-                  </div>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ScheduleCalendar
-                  year={currentMonth.getFullYear()}
-                  month={currentMonth.getMonth() + 1}
-                  professionals={displayedProfessionals}
-                  scheduleEntries={displayedScheduleEntries}
-                  onUpdateEntry={handleUpdateScheduleEntry}
-                  onDeleteEntry={handleDeleteScheduleEntry}
-                />
-                <ScheduleSummary
-                  professionals={displayedProfessionals}
-                  hoursSummary={professionalHoursSummary}
-                />
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="summary" className="mt-4">
-            <ScheduleSummary
-              schedule={displayedScheduleEntries}
-              professionals={displayedProfessionals}
-            />
-          </TabsContent>
-
-          <TabsContent value="professionals" className="mt-4">
-            <ProfessionalManagement
-              professionals={displayedProfessionals}
-              addProfessional={addProfessional}
-              updateProfessional={updateProfessional}
-              deleteProfessional={deleteProfessional}
-              activeProfessionalIds={activeProfessionalIds}
-              onToggleProfessionalActive={handleToggleProfessionalActive}
-            />
-          </TabsContent>
-        </Tabs>
-      </div>
+      </header>
+      <main className="flex-1 p-6 grid gap-6 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="lg:col-span-2 xl:col-span-3 flex flex-col gap-6">
+          <div className="flex items-center justify-between">
+            <MonthSelector selectedMonth={selectedMonth} onMonthChange={setSelectedMonth} />
+            <Button onClick={handleOpenHistoryDialog} variant="outline" size="sm">
+              <History className="mr-2 h-4 w-4" />
+              Histórico
+            </Button>
+            <Button onClick={handlePrintPreview}> {/* Changed to handlePrintPreview */}
+              Visualizar Impressão
+            </Button>
+          </div>
+          <ScheduleCalendar
+            year={selectedMonth.getFullYear()}
+            month={selectedMonth.getMonth() + 1}
+            professionals={displayedProfessionals}
+            scheduleEntries={displayedScheduleEntries}
+            onUpdateEntry={handleUpdateScheduleEntry}
+            onDeleteEntry={handleDeleteScheduleEntry}
+          />
+          <ScheduleSummary
+            professionals={displayedProfessionals}
+            hoursSummary={professionalHoursSummary}
+          />
+        </div>
+        <div className="lg:col-span-1 xl:col-span-1 flex flex-col gap-6">
+          <div className="flex space-x-2">
+            <Select value={scheduleGenerationMode} onValueChange={(value: 'daily' | 'weekly') => setScheduleGenerationMode(value)}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Modo de Geração" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="daily">Rotação Diária</SelectItem>
+                <SelectItem value="weekly">Rotação Semanal</SelectItem>
+              </SelectContent>
+            </Select>
+            {/* NOVO: Seleção do profissional que inicia a escala */}
+            <Select
+              value={startingProfessionalId || ''}
+              onValueChange={setStartingProfessionalId}
+              disabled={activeProfessionalIds.length === 0}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Começar com..." />
+              </SelectTrigger>
+              <SelectContent>
+                {activeProfessionalIds.map(profId => {
+                  const prof = professionals.find(p => p.id === profId);
+                  return prof ? (
+                    <SelectItem key={prof.id} value={prof.id}>
+                      {prof.name}
+                    </SelectItem>
+                  ) : null;
+                })}
+              </SelectContent>
+            </Select>
+            <Button 
+              onClick={generateAutomaticSchedule} 
+              disabled={activeProfessionalIds.length === 0 || isLoadingSchedule || !startingProfessionalId}
+            >
+              {isLoadingSchedule ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Gerando...
+                </>
+              ) : (
+                'Gerar Escala Automática'
+              )}
+            </Button>
+            <Button 
+              onClick={createScheduleRecord}
+              disabled={schedule.length === 0 || isLoadingHistory}
+            >
+              {isLoadingHistory ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Salvando...
+                </>
+              ) : (
+                'Criar Registro de Escala'
+              )}
+            </Button>
+          </div>
+          <ProfessionalManagement
+            professionals={displayedProfessionals}
+            addProfessional={addProfessional}
+            updateProfessional={updateProfessional}
+            deleteProfessional={deleteProfessional}
+            activeProfessionalIds={activeProfessionalIds}
+            onToggleProfessionalActive={handleToggleProfessionalActive}
+          />
+        </div>
+      </main>
 
       {/* Print preview content, shown when in print preview */}
       {isPrintPreviewActive && (
@@ -450,13 +400,13 @@ export default function Home() {
               <h1 className="font-bold print-header-preview">SECRETARIA MUNICIPAL DE SAÚDE DE CHAPADÃO DO CÉU</h1> {/* New class */}
               <h2 className="font-semibold print-header-preview sub-header-preview">DEPARTAMENTO DE INFORMÁTICA</h2> {/* New class */}
               <h3 className="print-header-preview system-title-preview"> {/* New class */}
-                Escala de Sobreaviso - {format(currentMonth, "MMMM 'de' yyyy", { locale: ptBR })}
+                Escala de Sobreaviso - {format(selectedMonth, "MMMM 'de' yyyy", { locale: ptBR })}
               </h3>
             </div>
           </div>
           <ScheduleCalendar
-            year={currentMonth.getFullYear()}
-            month={currentMonth.getMonth() + 1}
+            year={selectedMonth.getFullYear()}
+            month={selectedMonth.getMonth() + 1}
             professionals={displayedProfessionals}
             scheduleEntries={displayedScheduleEntries}
             onUpdateEntry={async () => {}}

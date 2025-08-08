@@ -1,4 +1,5 @@
-const db = require('../database/database')
+const db = require('../database/database'); // Isso já chama a função initDb()
+console.log('Script de inicialização do banco de dados executado.');
 
 db.serialize(() => {
   // Tabela de Profissionais

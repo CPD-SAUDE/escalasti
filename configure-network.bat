@@ -1,31 +1,25 @@
 @echo off
-echo Configurando a rede para o sistema de escala de sobreaviso...
+echo Configurando a rede para o sistema...
 
-REM Este script tenta obter o IP da rede e configurar o frontend.
-REM É mais útil para ambientes de desenvolvimento sem Docker.
+:: Este script é um exemplo e pode precisar de ajustes dependendo do seu ambiente.
+:: Ele tenta obter o IP da máquina e exibi-lo.
 
-REM Obtém o IP da rede do backend
-echo Obtendo o IP da rede...
-for /f "delims=" %%i in ('node backend\scripts\get-network-ip.js') do set NETWORK_IP=%%i
+echo Obtendo o IP da rede local...
+for /f "tokens=2 delims=:" %%a in ('ipconfig ^| findstr /i "IPv4 Address"') do set "IP_ADDRESS=%%a"
+set "IP_ADDRESS=%IP_ADDRESS:~1%"
 
-if "%NETWORK_IP%"=="" (
-    echo ERRO: Nao foi possivel obter o IP da rede. Verifique sua conexao.
-    pause
-    exit /b 1
-)
-
-echo IP da rede detectado: %NETWORK_IP%
-
-REM Define a variavel de ambiente NEXT_PUBLIC_API_URL para o frontend
-REM Isso permite que o frontend se conecte ao backend usando o IP da rede
-echo Definindo NEXT_PUBLIC_API_URL para o frontend...
-set NEXT_PUBLIC_API_URL=http://%NETWORK_IP%:3001/api
-
-echo Variavel NEXT_PUBLIC_API_URL definida como: %NEXT_PUBLIC_API_URL%
 echo.
-echo Para usar esta configuracao, inicie o frontend na mesma sessao do CMD:
-echo npm run dev
+echo Seu IP de rede local (provável): %IP_ADDRESS%
 echo.
-echo Se estiver usando Docker, esta configuracao nao e necessaria, pois o Docker Compose gerencia a rede.
+echo Se estiver usando Docker Compose, a comunicação entre frontend e backend
+echo ocorre internamente na rede Docker, usando os nomes dos serviços (ex: http://backend:3001/api).
+echo.
+echo Para acesso externo (do seu navegador para o frontend/backend Docker),
+echo as portas são mapeadas no docker-compose.yml (ex: 3000:3000 e 3001:3001).
+echo.
+echo Se estiver rodando o frontend e backend localmente (sem Docker Compose),
+echo você precisará definir a variável de ambiente NEXT_PUBLIC_API_URL no frontend:
+echo set NEXT_PUBLIC_API_URL=http://localhost:3001/api
+echo.
 
 pause

@@ -1,48 +1,68 @@
 # Configuração de Rede para o Sistema de Escala de Sobreaviso
 
-Este documento descreve como configurar a rede para o sistema de escala de sobreaviso, permitindo que o frontend e o backend se comuniquem corretamente, seja em um ambiente de desenvolvimento local ou em produção.
+Este documento descreve as configurações de rede necessárias para o correto funcionamento do Sistema de Escala de Sobreaviso, especialmente em ambientes de desenvolvimento e produção que utilizam Docker.
 
-## 1. Visão Geral da Arquitetura
+## 1. Visão Geral da Arquitetura de Rede
 
-O sistema é composto por duas partes principais:
+O sistema é composto por dois serviços principais:
+- **Backend:** Uma API Node.js/Express que gerencia a lógica de negócio e interage com o banco de dados.
+- **Frontend:** Uma aplicação Next.js que fornece a interface do usuário.
 
-- **Frontend (Next.js):** Uma aplicação web que roda na porta `3000`.
-- **Backend (Node.js/Express):** Uma API REST que roda na porta `3001` e interage com um banco de dados SQLite.
+Ambos os serviços são conteinerizados usando Docker e se comunicam através de uma rede Docker interna.
 
-Para que o frontend possa consumir os serviços do backend, eles precisam estar na mesma rede ou o frontend precisa saber o endereço IP e a porta do backend.
+## 2. Configuração com Docker Compose
 
-## 2. Configuração para Desenvolvimento Local (sem Docker Compose)
+O arquivo `docker-compose.yml` define a rede `app_network` que permite a comunicação entre os contêineres do frontend e do backend.
 
-Se você estiver executando o frontend e o backend diretamente em sua máquina local (sem Docker Compose), siga estas etapas:
+\`\`\`yaml
+version: '3.8'
 
-### 2.1. Iniciar o Backend
+services:
+  backend:
+    # ... outras configurações ...
+    networks:
+      - app_network # Conecta ao contêiner do frontend na mesma rede
 
-1.  Navegue até a pasta `backend`:
+  frontend:
+    # ... outras configurações ...
+    environment:
+      NEXT_PUBLIC_API_URL: http://backend:3001/api # 'backend' é o nome do serviço no Docker Compose
+    networks:
+      - app_network # Conecta ao contêiner do backend na mesma rede
+
+volumes:
+  backend_data: # Volume nomeado para persistência do banco de dados
+
+networks:
+  app_network:
+    driver: bridge # Define uma rede bridge para os contêineres se comunicarem
+\`\`\`
+
+**Explicação:**
+- `app_network`: É uma rede do tipo `bridge` criada pelo Docker Compose. Contêineres conectados à mesma rede bridge podem se comunicar entre si usando os nomes dos serviços como nomes de host (ex: `http://backend:3001/api`).
+- `NEXT_PUBLIC_API_URL`: Esta variável de ambiente no frontend é crucial. Ela informa ao frontend onde encontrar o backend. Dentro da rede Docker, o nome do serviço `backend` é resolvido para o IP interno do contêiner do backend.
+
+## 3. Acesso Externo (Host para Contêiner)
+
+Para acessar o frontend e o backend do seu navegador (no host), as portas são mapeadas:
+- **Frontend:** `3000:3000` (porta 3000 do host mapeada para a porta 3000 do contêiner). Acesse via `http://localhost:3000`.
+- **Backend:** `3001:3001` (porta 3001 do host mapeada para a porta 3001 do contêiner). Acesse via `http://localhost:3001` (útil para testar a API diretamente).
+
+## 4. Configuração de Rede em Ambiente de Desenvolvimento Local (sem Docker)
+
+Se você estiver executando o frontend e o backend diretamente no seu ambiente local (sem Docker Compose), você precisará garantir que o frontend saiba onde o backend está rodando.
+
+1.  **Inicie o Backend:**
+    Navegue até a pasta `backend` e inicie o servidor:
     \`\`\`bash
     cd backend
-    \`\`\`
-2.  Instale as dependências (se ainda não o fez):
-    \`\`\`bash
     npm install
-    \`\`\`
-3.  Inicie o servidor backend:
-    \`\`\`bash
     npm start
     \`\`\`
-    O backend estará disponível em `http://localhost:3001`.
+    O backend estará rodando em `http://localhost:3001`.
 
-### 2.2. Iniciar o Frontend
-
-1.  Navegue até a pasta raiz do projeto (onde está o `package.json` do frontend):
-    \`\`\`bash
-    cd .. # Se você estiver na pasta backend
-    \`\`\`
-2.  Instale as dependências (se ainda não o fez):
-    \`\`\`bash
-    npm install --force # Use --force se houver problemas de dependência
-    \`\`\`
-3.  Defina a variável de ambiente `NEXT_PUBLIC_API_URL` para apontar para o backend local.
-    -   **No Windows (CMD):**
-        \`\`\`cmd
-        set NEXT_PUBLIC_API_URL=http://localhost:3001/api
-        npm run dev
+2.  **Configure a variável de ambiente para o Frontend:**
+    Antes de iniciar o frontend, defina a variável de ambiente `NEXT_PUBLIC_API_URL` para apontar para o backend local.
+    -   **No Windows (PowerShell):**
+        ```powershell
+        $env:NEXT_PUBLIC_API_URL="http://localhost:3001/api"

@@ -86,10 +86,10 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: sans-serif;
   }
 }
 
 /*
-  This file is intentionally left blank.
   Global styles are handled by app/globals.css and Tailwind CSS.
 */
