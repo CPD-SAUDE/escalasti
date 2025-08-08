@@ -1,25 +1,17 @@
 @echo off
-echo Configurando a rede para o sistema...
+echo Configurando a rede para o frontend...
 
-:: Este script é um exemplo e pode precisar de ajustes dependendo do seu ambiente.
-:: Ele tenta obter o IP da máquina e exibi-lo.
+REM Obtém o IP da rede usando o script Node.js
+for /f "delims=" %%i in ('node backend\scripts\get-network-ip.js') do set "BACKEND_IP=%%i"
 
-echo Obtendo o IP da rede local...
-for /f "tokens=2 delims=:" %%a in ('ipconfig ^| findstr /i "IPv4 Address"') do set "IP_ADDRESS=%%a"
-set "IP_ADDRESS=%IP_ADDRESS:~1%"
+echo IP do Backend detectado: %BACKEND_IP%
 
-echo.
-echo Seu IP de rede local (provável): %IP_ADDRESS%
-echo.
-echo Se estiver usando Docker Compose, a comunicação entre frontend e backend
-echo ocorre internamente na rede Docker, usando os nomes dos serviços (ex: http://backend:3001/api).
-echo.
-echo Para acesso externo (do seu navegador para o frontend/backend Docker),
-echo as portas são mapeadas no docker-compose.yml (ex: 3000:3000 e 3001:3001).
-echo.
-echo Se estiver rodando o frontend e backend localmente (sem Docker Compose),
-echo você precisará definir a variável de ambiente NEXT_PUBLIC_API_URL no frontend:
-echo set NEXT_PUBLIC_API_URL=http://localhost:3001/api
-echo.
+REM Define a variável de ambiente NEXT_PUBLIC_API_URL para o frontend
+REM Isso cria ou sobrescreve o arquivo .env.local na raiz do frontend
+echo NEXT_PUBLIC_API_URL=http://%BACKEND_IP%:3001/api > .env.local
+
+echo Arquivo .env.local criado/atualizado com sucesso na raiz do frontend.
+echo Conteúdo de .env.local:
+type .env.local
 
 pause

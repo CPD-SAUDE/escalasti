@@ -8,8 +8,8 @@ WORKDIR /app
 # Isso permite que o Docker use o cache de camadas para as dependências
 COPY package*.json ./
 
-# Instala as dependências do Node.js, usando --force para resolver conflitos
-RUN npm install --force
+# Instala as dependências do Node.js, usando npm ci para builds reproduzíveis
+RUN npm ci
 
 # Copia o restante do código da aplicação para o contêiner
 COPY . .

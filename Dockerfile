@@ -6,8 +6,8 @@ WORKDIR /app
 # Copia os arquivos package.json e package-lock.json
 COPY package*.json ./
 
-# Instala as dependências do Node.js, usando --force conforme solicitado
-RUN npm install --force
+# Instala as dependências do Node.js, usando npm ci para builds reproduzíveis
+RUN npm ci
 
 # Copia o restante do código da aplicação
 COPY . .

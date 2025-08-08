@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, parseISO, getWeek } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -26,8 +26,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import Image from "next/image";
 
 export default function Home() {
+  const [currentMonth, setCurrentMonth] = useState(new Date());
   const [activeProfessionalIds, setActiveProfessionalIds] = useState<string[]>([]);
-  const [selectedMonth, setSelectedMonth] = useState<Date>(new Date());
   const [isPrintPreviewActive, setIsPrintPreviewActive] = useState(false); // Renamed state
 
   const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
@@ -38,7 +38,7 @@ export default function Home() {
   const [scheduleGenerationMode, setScheduleGenerationMode] = useState<'daily' | 'weekly'>('daily');
   const [startingProfessionalId, setStartingProfessionalId] = useState<string | null>(null);
 
-  const { config, isLoading: isLoadingConfig, error: errorConfig } = useConfig();
+  const { config, updateConfig, isLoading: isLoadingConfig, error: errorConfig } = useConfig();
   const {
     professionals,
     addProfessional,
@@ -49,12 +49,15 @@ export default function Home() {
   } = useProfessionals();
   const {
     schedule,
-    updateSchedule,
+    addOrUpdateScheduleEntry,
+    deleteScheduleEntry,
     isLoading: isLoadingSchedule,
     error: errorSchedule,
-  } = useSchedule(selectedMonth.getFullYear(), selectedMonth.getMonth() + 1);
+  } = useSchedule(currentMonth.getFullYear(), currentMonth.getMonth() + 1);
   const {
     history,
+    addHistoryEntry,
+    deleteHistoryEntry,
     isLoading: isLoadingHistory,
     error: errorHistory,
     fetchHistory,
@@ -111,7 +114,7 @@ export default function Home() {
 
   const handleUpdateScheduleEntry = async (entry: Omit<ScheduleEntry, 'id' | 'created_at' | 'updated_at'>) => {
     try {
-      await updateSchedule(entry);
+      await addOrUpdateScheduleEntry(entry);
     } catch (error) {
       console.error('Erro ao atualizar entrada:', error);
     }
@@ -119,31 +122,31 @@ export default function Home() {
 
   const handleDeleteScheduleEntry = async (date: string) => {
     try {
-      await updateSchedule({ date });
+      await deleteScheduleEntry(date);
     } catch (error) {
       console.error('Erro ao deletar entrada:', error);
     }
   };
 
   const handlePrevMonth = async () => {
-    setSelectedMonth(prev => subMonths(prev, 1));
+    setCurrentMonth(prev => subMonths(prev, 1));
   };
 
   const handleNextMonth = async () => {
-    setSelectedMonth(prev => addMonths(prev, 1));
+    setCurrentMonth(prev => addMonths(prev, 1));
   };
 
   const handleGoToMonth = (date: Date) => {
-    setSelectedMonth(date);
+    setCurrentMonth(date);
   };
 
   const handleGoToCurrentMonth = () => {
-    setSelectedMonth(new Date());
+    setCurrentMonth(new Date());
   };
 
   const generateAutomaticSchedule = async () => {
-    const start = startOfMonth(selectedMonth);
-    const end = endOfMonth(selectedMonth);
+    const start = startOfMonth(currentMonth);
+    const end = endOfMonth(currentMonth);
     const daysInMonth = eachDayOfInterval({ start, end });
 
     const activeProfessionals = professionals.filter(p => activeProfessionalIds.includes(p.id));
@@ -183,7 +186,7 @@ export default function Home() {
           assignedProfessional = currentProfessionalForWeek!;
         }
 
-        await updateSchedule({
+        await addOrUpdateScheduleEntry({
           date: format(day, "yyyy-MM-dd"),
           professionalId: assignedProfessional.id,
           hours: assignedProfessional.default_hours || 12,
@@ -199,7 +202,7 @@ export default function Home() {
   };
 
   const createScheduleRecord = async () => {
-    const monthYear = format(selectedMonth, "yyyy-MM");
+    const monthYear = format(currentMonth, "yyyy-MM");
 
     try {
       const scheduleData: ScheduleEntry[] = schedule.map(entry => ({
@@ -209,13 +212,13 @@ export default function Home() {
         observation: entry.observation,
       }));
 
-      await fetchHistory({
+      await addHistoryEntry({
         month_year: monthYear,
         schedule_data: scheduleData,
         professionals_data: professionals,
       });
 
-      alert(`Escala para ${format(selectedMonth, "MMMM 'de' yyyy", { locale: ptBR })} salva no histórico!`);
+      alert(`Escala para ${format(currentMonth, "MMMM 'de' yyyy", { locale: ptBR })} salva no histórico!`);
     } catch (error) {
       console.error('Erro ao salvar no histórico:', error);
       alert("Erro ao salvar no histórico. Tente novamente.");
@@ -223,7 +226,7 @@ export default function Home() {
   };
 
   const loadHistoricalSchedule = (record: any) => {
-    setSelectedMonth(parseISO(record.month_year + "-01"));
+    setCurrentMonth(parseISO(record.month_year + "-01"));
     setHistoricalProfessionals(record.professionals_data);
 
     const entriesWithProfessional: ScheduleEntryWithProfessional[] = record.schedule_data.map((entry: any) => {
@@ -258,7 +261,7 @@ export default function Home() {
 
   const professionalHoursSummary = useMemo(() => {
     const summary: { [key: string]: number } = {};
-    const currentMonthYearFormatted = format(selectedMonth, "yyyy-MM");
+    const currentMonthYearFormatted = format(currentMonth, "yyyy-MM");
 
     displayedScheduleEntries.forEach(entry => {
       const entryMonthYear = format(parseISO(entry.date), "yyyy-MM");
@@ -267,7 +270,7 @@ export default function Home() {
       }
     });
     return summary;
-  }, [displayedScheduleEntries, selectedMonth]);
+  }, [displayedScheduleEntries, currentMonth]);
 
   if (isLoading) {
     return (
@@ -283,36 +286,85 @@ export default function Home() {
   return (
     <div className={cn("flex flex-col min-h-screen bg-gray-100 dark:bg-gray-900", isPrintPreviewActive && "print-preview-active-body-wrapper")}> {/* Add wrapper class */}
       {/* Main content, hidden when in print preview */}
-      <header className="bg-white dark:bg-gray-800 shadow-sm py-4 px-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-50">Sistema de Escala de Sobreaviso</h1>
-        <ApiStatus />
-      </header>
-      <main className="flex-1 p-6 grid gap-6 lg:grid-cols-3 xl:grid-cols-4">
-        <div className="lg:col-span-2 xl:col-span-3 flex flex-col gap-6">
-          <div className="flex items-center justify-between">
-            <MonthSelector selectedMonth={selectedMonth} onMonthChange={setSelectedMonth} />
-            <Button onClick={handleOpenHistoryDialog} variant="outline" size="sm">
-              <History className="mr-2 h-4 w-4" />
-              Histórico
-            </Button>
-            <Button onClick={handlePrintPreview}> {/* Changed to handlePrintPreview */}
-              Visualizar Impressão
-            </Button>
-          </div>
-          <ScheduleCalendar
-            year={selectedMonth.getFullYear()}
-            month={selectedMonth.getMonth() + 1}
-            professionals={displayedProfessionals}
-            scheduleEntries={displayedScheduleEntries}
-            onUpdateEntry={handleUpdateScheduleEntry}
-            onDeleteEntry={handleDeleteScheduleEntry}
-          />
-          <ScheduleSummary
-            professionals={displayedProfessionals}
-            hoursSummary={professionalHoursSummary}
-          />
+      <header className="bg-white dark:bg-gray-800 shadow-sm py-4 px-6 flex flex-col md:flex-row items-center justify-between">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Sistema de Escala de Sobreaviso</h1>
+        <div className="flex items-center space-x-4">
+          <ApiStatus />
+          <Button onClick={handleOpenHistoryDialog} variant="outline" size="sm">
+            <History className="mr-2 h-4 w-4" />
+            Histórico
+          </Button>
+          <Button onClick={handlePrintPreview}> {/* Changed to handlePrintPreview */}
+            Visualizar Impressão
+          </Button>
         </div>
-        <div className="lg:col-span-1 xl:col-span-1 flex flex-col gap-6">
+      </header>
+      <main className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 flex flex-col gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Escala Mensal</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <MonthSelector currentMonth={currentMonth} onMonthChange={setCurrentMonth} />
+              <ScheduleCalendar
+                currentMonth={currentMonth}
+                schedule={displayedScheduleEntries}
+                professionals={displayedProfessionals}
+                addOrUpdateScheduleEntry={handleUpdateScheduleEntry}
+                deleteScheduleEntry={handleDeleteScheduleEntry}
+                isLoading={isLoadingSchedule}
+              />
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="lg:col-span-1 flex flex-col gap-6">
+          <ScheduleSummary
+            currentMonth={currentMonth}
+            schedule={displayedScheduleEntries}
+            professionals={displayedProfessionals}
+          />
+          <Card>
+            <CardHeader>
+              <CardTitle>Gerenciamento</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Tabs defaultValue="professionals" className="w-full">
+                <TabsList className="grid w-full grid-cols-1">
+                  <TabsTrigger value="professionals">Profissionais</TabsTrigger>
+                  {/* <TabsTrigger value="config">Configurações</TabsTrigger> */}
+                </TabsList>
+                <TabsContent value="professionals" className="mt-4">
+                  <ProfessionalManagement
+                    professionals={displayedProfessionals}
+                    addProfessional={addProfessional}
+                    updateProfessional={updateProfessional}
+                    deleteProfessional={deleteProfessional}
+                    activeProfessionalIds={activeProfessionalIds}
+                    onToggleProfessionalActive={handleToggleProfessionalActive}
+                  />
+                </TabsContent>
+                {/* <TabsContent value="config" className="mt-4">
+                  <h3 className="text-lg font-semibold mb-2">Configurações do Sistema</h3>
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="backend-ip">IP do Backend</Label>
+                      <Input
+                        id="backend-ip"
+                        value={config.backendIp || ''}
+                        onChange={(e) => updateConfig({ backendIp: e.target.value })}
+                        placeholder="Ex: 192.168.1.100"
+                      />
+                      <p className="text-sm text-gray-500 mt-1">
+                        O IP do servidor backend para comunicação da API.
+                      </p>
+                    </div>
+                  </div>
+                </TabsContent> */}
+              </Tabs>
+            </CardContent>
+          </Card>
           <div className="flex space-x-2">
             <Select value={scheduleGenerationMode} onValueChange={(value: 'daily' | 'weekly') => setScheduleGenerationMode(value)}>
               <SelectTrigger className="w-[180px]">
@@ -370,14 +422,6 @@ export default function Home() {
               )}
             </Button>
           </div>
-          <ProfessionalManagement
-            professionals={displayedProfessionals}
-            addProfessional={addProfessional}
-            updateProfessional={updateProfessional}
-            deleteProfessional={deleteProfessional}
-            activeProfessionalIds={activeProfessionalIds}
-            onToggleProfessionalActive={handleToggleProfessionalActive}
-          />
         </div>
       </main>
 
@@ -400,17 +444,16 @@ export default function Home() {
               <h1 className="font-bold print-header-preview">SECRETARIA MUNICIPAL DE SAÚDE DE CHAPADÃO DO CÉU</h1> {/* New class */}
               <h2 className="font-semibold print-header-preview sub-header-preview">DEPARTAMENTO DE INFORMÁTICA</h2> {/* New class */}
               <h3 className="print-header-preview system-title-preview"> {/* New class */}
-                Escala de Sobreaviso - {format(selectedMonth, "MMMM 'de' yyyy", { locale: ptBR })}
+                Escala de Sobreaviso - {format(currentMonth, "MMMM 'de' yyyy", { locale: ptBR })}
               </h3>
             </div>
           </div>
           <ScheduleCalendar
-            year={selectedMonth.getFullYear()}
-            month={selectedMonth.getMonth() + 1}
+            currentMonth={currentMonth}
+            schedule={displayedScheduleEntries}
             professionals={displayedProfessionals}
-            scheduleEntries={displayedScheduleEntries}
-            onUpdateEntry={async () => {}}
-            onDeleteEntry={async () => {}}
+            addOrUpdateScheduleEntry={async () => {}}
+            deleteScheduleEntry={async () => {}}
             isPrintMode={true} // Keep this true to apply print-specific logic within calendar/summary components
           />
           <ScheduleSummary

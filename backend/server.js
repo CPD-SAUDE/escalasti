@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const db = require('./database/database');
+const db = require('./database/database'); // Importa a conexão com o banco de dados
 
 // Importar rotas
 const professionalsRoutes = require('./routes/professionals');

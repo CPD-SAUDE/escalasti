@@ -1,33 +1,22 @@
 const db = require('../database/database');
 
-// Obter configuração
-const getConfig = (req, res) => {
-  db.get('SELECT * FROM config WHERE id = 1', [], (err, row) => {
+exports.getConfig = (req, res) => {
+  db.get(`SELECT backendIp FROM config WHERE id = 1`, (err, row) => {
     if (err) {
-      res.status(500).json({ error: err.message });
-      return;
+      console.error("Erro ao buscar configuração:", err.message);
+      return res.status(500).json({ error: err.message });
     }
-    res.json(row || { id: 1, backendIp: null });
+    res.json(row || { backendIp: null });
   });
 };
 
-// Atualizar configuração
-const updateConfig = (req, res) => {
+exports.updateConfig = (req, res) => {
   const { backendIp } = req.body;
-
-  db.run('UPDATE config SET backendIp = ? WHERE id = 1',
-    [backendIp],
-    function(err) {
-      if (err) {
-        res.status(500).json({ error: err.message });
-        return;
-      }
-      res.json({ id: 1, backendIp });
+  db.run(`UPDATE config SET backendIp = ? WHERE id = 1`, [backendIp], function(err) {
+    if (err) {
+      console.error("Erro ao atualizar configuração:", err.message);
+      return res.status(500).json({ error: err.message });
     }
-  );
-};
-
-module.exports = {
-  getConfig,
-  updateConfig
+    res.json({ message: 'Configuração atualizada com sucesso', changes: this.changes });
+  });
 };

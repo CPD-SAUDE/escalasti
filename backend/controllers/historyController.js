@@ -1,55 +1,38 @@
 const db = require('../database/database');
+const { v4: uuidv4 } = require('uuid');
 
-// Obter todo o histórico
-const getAllHistory = (req, res) => {
-  db.all('SELECT * FROM history ORDER BY date DESC', [], (err, rows) => {
+exports.getAllHistory = (req, res) => {
+  db.all(`SELECT * FROM history ORDER BY date DESC`, (err, rows) => {
     if (err) {
-      res.status(500).json({ error: err.message });
-      return;
+      console.error("Erro ao buscar histórico:", err.message);
+      return res.status(500).json({ error: err.message });
     }
     res.json(rows);
   });
 };
 
-// Adicionar entrada no histórico
-const addHistoryEntry = (req, res) => {
-  const { id, date, description } = req.body;
-
-  if (!id || !date || !description) {
-    return res.status(400).json({ error: 'ID, data e descrição são obrigatórios' });
-  }
-
-  db.run('INSERT INTO history (id, date, description) VALUES (?, ?, ?)',
-    [id, date, description],
-    function(err) {
-      if (err) {
-        res.status(500).json({ error: err.message });
-        return;
-      }
-      res.json({ id, date, description });
-    }
-  );
-};
-
-// Deletar entrada do histórico
-const deleteHistoryEntry = (req, res) => {
-  const { id } = req.params;
-
-  db.run('DELETE FROM history WHERE id = ?', [id], function(err) {
+exports.addHistoryEntry = (req, res) => {
+  const { date, description } = req.body;
+  const id = uuidv4();
+  db.run(`INSERT INTO history (id, date, description) VALUES (?, ?, ?)`, [id, date, description], function(err) {
     if (err) {
-      res.status(500).json({ error: err.message });
-      return;
+      console.error("Erro ao adicionar entrada de histórico:", err.message);
+      return res.status(500).json({ error: err.message });
     }
-    if (this.changes === 0) {
-      res.status(404).json({ error: 'Entrada do histórico não encontrada' });
-      return;
-    }
-    res.json({ message: 'Entrada do histórico deletada com sucesso' });
+    res.status(201).json({ id: id, date, description });
   });
 };
 
-module.exports = {
-  getAllHistory,
-  addHistoryEntry,
-  deleteHistoryEntry
+exports.deleteHistoryEntry = (req, res) => {
+  const { id } = req.params;
+  db.run(`DELETE FROM history WHERE id = ?`, id, function(err) {
+    if (err) {
+      console.error("Erro ao deletar entrada de histórico:", err.message);
+      return res.status(500).json({ error: err.message });
+    }
+    if (this.changes === 0) {
+      return res.status(404).json({ message: "Entrada de histórico não encontrada." });
+    }
+    res.json({ message: 'Entrada de histórico deletada com sucesso', changes: this.changes });
+  });
 };

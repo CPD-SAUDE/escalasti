@@ -1,61 +1,57 @@
-import { useState, useEffect, useCallback } from 'react';
-import { getAllHistory, addHistoryEntry, deleteHistoryEntry } from '@/lib/api';
-import { HistoryEntry } from '@/lib/types';
+import { useState, useEffect, useCallback } from 'react'
+import { getHistory, addHistory, deleteHistory } from '@/lib/api'
+import { HistoryEntry } from '@/lib/types'
 
 export function useHistory() {
-  const [history, setHistory] = useState<HistoryEntry[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [history, setHistory] = useState<HistoryEntry[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   const fetchHistory = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
+    setIsLoading(true)
+    setError(null)
     try {
-      const data = await getAllHistory();
-      setHistory(data);
+      const data = await getHistory()
+      setHistory(data)
     } catch (err) {
-      setError('Erro ao carregar histórico.');
-      console.error(err);
+      console.error("Failed to fetch history:", err)
+      setError("Falha ao carregar histórico.")
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  }, []);
+  }, [])
 
   useEffect(() => {
-    fetchHistory();
-  }, [fetchHistory]);
+    fetchHistory()
+  }, [fetchHistory])
 
-  const addEntry = useCallback(async (entry: Omit<HistoryEntry, 'id'>) => {
-    setIsLoading(true);
-    setError(null);
+  const addHistoryEntry = useCallback(async (date: string, description: string) => {
+    setIsLoading(true)
+    setError(null)
     try {
-      await addHistoryEntry(entry);
-      await fetchHistory(); // Recarrega o histórico após adicionar
-      return true;
+      const newEntry = await addHistory(date, description)
+      setHistory(prev => [newEntry, ...prev]) // Adiciona no início para mostrar os mais recentes
     } catch (err) {
-      setError('Erro ao adicionar entrada de histórico.');
-      console.error(err);
-      return false;
+      console.error("Failed to add history entry:", err)
+      setError("Falha ao adicionar registro de histórico.")
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  }, [fetchHistory]);
+  }, [])
 
-  const deleteEntry = useCallback(async (id: number) => {
-    setIsLoading(true);
-    setError(null);
+  const deleteHistoryEntry = useCallback(async (id: string) => {
+    setIsLoading(true)
+    setError(null)
     try {
-      await deleteHistoryEntry(id);
-      await fetchHistory(); // Recarrega o histórico após deletar
-      return true;
+      await deleteHistory(id)
+      setHistory(prev => prev.filter(entry => entry.id !== id))
     } catch (err) {
-      setError('Erro ao remover entrada de histórico.');
-      console.error(err);
-      return false;
+      console.error("Failed to delete history entry:", err)
+      setError("Falha ao deletar registro de histórico.")
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  }, [fetchHistory]);
+  }, [])
 
-  return { history, isLoading, error, addEntry, deleteEntry, refetchHistory: fetchHistory };
+  return { history, isLoading, error, addHistoryEntry, deleteHistoryEntry, refetchHistory: fetchHistory }
 }

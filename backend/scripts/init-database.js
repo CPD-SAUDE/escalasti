@@ -1,4 +1,13 @@
 const db = require('../database/database');
+const path = require('path');
+const fs = require('fs');
+
+// Garante que o diretório 'database' exista
+const dbDir = path.resolve(__dirname, '../database');
+if (!fs.existsSync(dbDir)) {
+  fs.mkdirSync(dbDir, { recursive: true });
+  console.log(`Diretório 'database' criado em: ${dbDir}`);
+}
 
 db.serialize(() => {
   // Tabela de Profissionais
@@ -47,7 +56,7 @@ db.serialize(() => {
     }
   });
 
-  // Tabela de Configurações
+  // Tabela de Configurações (para armazenar o IP do backend, se necessário)
   db.run(`
     CREATE TABLE IF NOT EXISTS config (
       id INTEGER PRIMARY KEY,
@@ -58,6 +67,7 @@ db.serialize(() => {
       console.error("Erro ao criar tabela 'config':", err.message);
     } else {
       console.log("Tabela 'config' verificada/criada.");
+      // Insere uma entrada padrão se a tabela estiver vazia
       db.run(`INSERT OR IGNORE INTO config (id, backendIp) VALUES (1, NULL)`, (err) => {
         if (err) {
           console.error("Erro ao inserir configuração padrão:", err.message);
@@ -68,3 +78,7 @@ db.serialize(() => {
     }
   });
 });
+
+// Não feche o banco de dados imediatamente, pois as operações são assíncronas.
+// O banco de dados será fechado quando o processo Node.js terminar.
+// Ou você pode adicionar um db.close() em um hook de saída do processo se for um script de uso único.

@@ -1,169 +1,134 @@
 'use client'
 
-import { useState } from 'react'
-import {
-  eachDayOfInterval,
-  endOfMonth,
-  format,
-  getDay,
-  isSameDay,
-  startOfMonth,
-} from 'date-fns'
+import { Calendar } from '@/components/ui/calendar'
+import { Professional, ScheduleEntry } from '@/lib/types'
+import { format, isSameDay, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { Professional, ScheduleData } from '@/lib/types'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Button } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
-import { Alert, AlertDescription, AlertTitle } from './ui/alert'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { useState } from 'react'
+import { Loader2 } from 'lucide-react'
 
 interface ScheduleCalendarProps {
-  year: number
-  month: number
-  schedule: ScheduleData
+  currentMonth: Date
+  schedule: ScheduleEntry[]
   professionals: Professional[]
-  updateSchedule: (
-    year: number,
-    month: number,
-    data: ScheduleData,
-  ) => Promise<void>
+  addOrUpdateScheduleEntry: (date: string, professionalId: string | null) => Promise<void>
+  deleteScheduleEntry: (date: string) => Promise<void>
+  isLoading: boolean
 }
 
 export default function ScheduleCalendar({
-  year,
-  month,
+  currentMonth,
   schedule,
   professionals,
-  updateSchedule,
+  addOrUpdateScheduleEntry,
+  deleteScheduleEntry,
+  isLoading,
 }: ScheduleCalendarProps) {
-  const firstDayOfMonth = startOfMonth(new Date(year, month - 1))
-  const lastDayOfMonth = endOfMonth(new Date(year, month - 1))
-  const daysInMonth = eachDayOfInterval({
-    start: firstDayOfMonth,
-    end: lastDayOfMonth,
-  })
+  const [selectedProfessionalId, setSelectedProfessionalId] = useState<string | null>(null)
 
-  const startingDayIndex = getDay(firstDayOfMonth) // 0 for Sunday, 1 for Monday...
+  const getDayContent = (day: Date) => {
+    const entry = schedule.find(s => isSameDay(parseISO(s.date), day))
+    const professional = entry ? professionals.find(p => p.id === entry.professionalId) : null
 
-  const [currentSchedule, setCurrentSchedule] =
-    useState<ScheduleData>(schedule)
-  const [isSaving, setIsSaving] = useState(false)
-  const [saveError, setSaveError] = useState<string | null>(null)
-  const [saveSuccess, setSaveSuccess] = useState<string | null>(null)
-
-  // Update internal state when external schedule prop changes
-  // This is important if the schedule is fetched asynchronously
-  useState(() => {
-    setCurrentSchedule(schedule)
-  }, [schedule])
-
-  const handleProfessionalChange = (day: number, professionalId: string) => {
-    setCurrentSchedule((prev) => ({
-      ...prev,
-      [day]: professionalId === 'none' ? null : parseInt(professionalId),
-    }))
-    setSaveSuccess(null) // Clear success message on change
+    return (
+      <div className="relative h-full w-full flex flex-col items-center justify-center text-center">
+        <span className="text-sm font-semibold">{format(day, 'd')}</span>
+        {professional && (
+          <div
+            className="absolute bottom-0 left-0 right-0 text-xs truncate px-1 py-0.5 rounded-b-md"
+            style={{ backgroundColor: professional.color, color: 'white' }}
+          >
+            {professional.name}
+          </div>
+        )}
+      </div>
+    )
   }
 
-  const handleSaveSchedule = async () => {
-    setIsSaving(true)
-    setSaveError(null)
-    setSaveSuccess(null)
-    try {
-      await updateSchedule(year, month, currentSchedule)
-      setSaveSuccess('Escala salva com sucesso!')
-    } catch (err: any) {
-      setSaveError(err.message || 'Erro ao salvar a escala.')
-    } finally {
-      setIsSaving(false)
+  const handleDayClick = async (day: Date) => {
+    const formattedDate = format(day, 'yyyy-MM-dd')
+    const existingEntry = schedule.find(s => isSameDay(parseISO(s.date), day))
+
+    if (selectedProfessionalId) {
+      // Se um profissional foi selecionado, atribui ou atualiza
+      await addOrUpdateScheduleEntry(formattedDate, selectedProfessionalId)
+    } else if (existingEntry) {
+      // Se nenhum profissional foi selecionado, mas há uma entrada existente, remove
+      await addOrUpdateScheduleEntry(formattedDate, null) // Define como null para remover o profissional do dia
     }
+    // Se nenhum profissional selecionado e nenhuma entrada existente, não faz nada
   }
 
-  const getProfessionalForDay = (day: number) => {
-    const professionalId = currentSchedule[day]
-    return professionals.find((p) => p.id === professionalId)
-  }
+  const getDayStyle = (day: Date) => {
+    const entry = schedule.find(s => isSameDay(parseISO(s.date), day))
+    const professional = entry ? professionals.find(p => p.id === entry.professionalId) : null
 
-  const weekDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
+    if (professional) {
+      return {
+        '--color-professional': professional.color,
+        backgroundColor: professional.color,
+        color: 'white',
+      } as React.CSSProperties
+    }
+    return {}
+  }
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-2xl font-bold">Escala Mensal</CardTitle>
-        <Button onClick={handleSaveSchedule} disabled={isSaving}>
-          {isSaving ? 'Salvando...' : 'Salvar Escala'}
-        </Button>
-      </CardHeader>
-      <CardContent>
-        {saveError && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertTitle>Erro ao Salvar</AlertTitle>
-            <AlertDescription>{saveError}</AlertDescription>
-          </Alert>
-        )}
-        {saveSuccess && (
-          <Alert className="mb-4 border-green-500 text-green-700 dark:border-green-400 dark:text-green-300">
-            <AlertTitle>Sucesso</AlertTitle>
-            <AlertDescription>{saveSuccess}</AlertDescription>
-          </Alert>
-        )}
-        <div className="grid grid-cols-7 gap-2 text-center font-semibold">
-          {weekDays.map((day) => (
-            <div key={day}>{day}</div>
-          ))}
+    <div className="relative">
+      {isLoading && (
+        <div className="absolute inset-0 bg-white/70 dark:bg-gray-900/70 flex items-center justify-center z-10 rounded-lg">
+          <Loader2 className="h-10 w-10 animate-spin text-primary" />
         </div>
-        <div className="mt-2 grid grid-cols-7 gap-2">
-          {Array.from({ length: startingDayIndex }).map((_, i) => (
-            <div key={`empty-${i}`} className="h-24 rounded-md bg-gray-100 dark:bg-gray-800" />
-          ))}
-          {daysInMonth.map((day, index) => {
-            const dayNumber = parseInt(format(day, 'd'))
-            const professional = getProfessionalForDay(dayNumber)
-
-            return (
-              <div
-                key={index}
-                className={cn(
-                  'flex flex-col rounded-md border p-2 shadow-sm',
-                  isSameDay(day, new Date()) && 'border-blue-500 ring-2 ring-blue-500',
-                )}
-              >
-                <div className="text-lg font-bold">{dayNumber}</div>
-                <Select
-                  value={professional ? String(professional.id) : 'none'}
-                  onValueChange={(value) =>
-                    handleProfessionalChange(dayNumber, value)
-                  }
-                >
-                  <SelectTrigger
-                    className="mt-1 h-auto min-h-[36px] text-xs"
-                    style={{
-                      backgroundColor: professional?.color || 'transparent',
-                      color: professional ? '#FFF' : 'inherit',
-                    }}
-                  >
-                    <SelectValue placeholder="Selecionar" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Nenhum</SelectItem>
-                    {professionals.map((p) => (
-                      <SelectItem key={p.id} value={String(p.id)}>
-                        {p.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )
-          })}
-        </div>
-      </CardContent>
-    </Card>
+      )}
+      <div className="mb-4 flex items-center gap-2">
+        <Select onValueChange={setSelectedProfessionalId} value={selectedProfessionalId || ''}>
+          <SelectTrigger className="w-[200px]">
+            <SelectValue placeholder="Atribuir Profissional" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">Remover Atribuição</SelectItem>
+            {professionals.map((p) => (
+              <SelectItem key={p.id} value={p.id}>
+                <div className="flex items-center">
+                  <div className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: p.color }} />
+                  {p.name}
+                </div>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <span className="text-sm text-muted-foreground">
+          Clique em um dia para atribuir/remover.
+        </span>
+      </div>
+      <Calendar
+        mode="single"
+        month={currentMonth}
+        selected={[]} // Não selecione nenhum dia por padrão, o estilo é via modifiers
+        onDayClick={handleDayClick}
+        locale={ptBR}
+        className="rounded-md border w-full"
+        classNames={{
+          day: 'h-16 w-full text-center text-sm p-0 relative', // Ajuste a altura e largura do dia
+          cell: 'h-16 w-full', // Garante que a célula tenha a mesma dimensão
+          day_today: 'bg-accent text-accent-foreground',
+          day_selected: 'bg-[--color-professional] text-primary-foreground hover:bg-[--color-professional] hover:opacity-90 focus:bg-[--color-professional]',
+          day_outside: 'text-muted-foreground opacity-50',
+          day_hidden: 'invisible',
+        }}
+        modifiers={{
+          scheduled: schedule.map(s => parseISO(s.date)),
+        }}
+        modifiersStyles={{
+          scheduled: (day) => getDayStyle(day),
+        }}
+        components={{
+          DayContent: ({ date }) => getDayContent(date),
+        }}
+      />
+    </div>
   )
 }

@@ -1,22 +1,23 @@
 export interface Professional {
-  id: number;
+  id: string;
   name: string;
   color: string;
 }
 
 export interface ScheduleEntry {
-  id: number;
-  date: string; // Formato 'YYYY-MM-DD'
-  professionalId: number | null; // Pode ser null se o dia estiver vazio
+  id: string;
+  date: string; // YYYY-MM-DD
+  professionalId: string | null;
+  professionalName?: string; // Opcional, para facilitar o frontend
+  professionalColor?: string; // Opcional, para facilitar o frontend
 }
 
 export interface HistoryEntry {
-  id: number;
-  date: string; // Formato 'YYYY-MM-DD'
+  id: string;
+  date: string; // YYYY-MM-DD
   description: string;
 }
 
 export interface Config {
-  id: number;
-  holidays: string[]; // Array de datas em formato 'YYYY-MM-DD'
+  backendIp: string | null;
 }

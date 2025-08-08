@@ -10,7 +10,7 @@ interface MonthSelectorProps {
   onMonthChange: (newMonth: Date) => void
 }
 
-export function MonthSelector({ currentMonth, onMonthChange }: MonthSelectorProps) {
+export default function MonthSelector({ currentMonth, onMonthChange }: MonthSelectorProps) {
   const handlePreviousMonth = () => {
     onMonthChange(subMonths(currentMonth, 1))
   }
@@ -20,11 +20,11 @@ export function MonthSelector({ currentMonth, onMonthChange }: MonthSelectorProp
   }
 
   return (
-    <div className="flex items-center space-x-2">
+    <div className="flex items-center justify-between mb-4">
       <Button variant="outline" size="icon" onClick={handlePreviousMonth}>
         <ChevronLeft className="h-4 w-4" />
       </Button>
-      <h2 className="text-lg font-semibold">
+      <h2 className="text-xl font-semibold">
         {format(currentMonth, 'MMMM yyyy', { locale: ptBR })}
       </h2>
       <Button variant="outline" size="icon" onClick={handleNextMonth}>

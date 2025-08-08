@@ -371,3 +371,26 @@
   margin-top: 0.1rem;
   color: black;
 }
+
+/* Custom styles for calendar cells */
+.rdp-day_selected,
+.rdp-day_selected:hover,
+.rdp-day_selected:focus-visible {
+  background-color: var(--color-professional, var(--primary)) !important;
+  color: var(--primary-foreground) !important;
+}
+
+.rdp-day_selected:hover {
+  opacity: 0.9;
+}
+
+/* Ensure the color picker input is visible */
+.react-colorful__saturation,
+.react-colorful__hue,
+.react-colorful__alpha {
+  border-radius: var(--radius);
+}
+
+.react-colorful__last-control {
+  border-radius: var(--radius);
+}

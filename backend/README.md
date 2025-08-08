@@ -1,31 +1,27 @@
 # Backend do Sistema de Escala de Sobreaviso
 
-Este é o backend da aplicação de escala de sobreaviso, construído com Node.js e Express.js, utilizando SQLite como banco de dados.
+Este é o backend da aplicação de escala de sobreaviso, construído com Node.js, Express e SQLite.
 
-## Estrutura do Projeto
+## Estrutura de Pastas
 
-\`\`\`
-.
-├── controllers/      # Lógica de negócio para as rotas
-├── database/         # Configuração do banco de dados SQLite
-├── routes/           # Definição das rotas da API
-├── scripts/          # Scripts de inicialização (ex: init-database.js)
-├── server.js         # Ponto de entrada do servidor
-└── package.json      # Dependências do backend
-\`\`\`
+- `controllers/`: Contém a lógica de negócio para cada recurso (profissionais, escala, histórico, configuração).
+- `database/`: Contém o arquivo de conexão com o banco de dados SQLite.
+- `routes/`: Define as rotas da API para cada recurso.
+- `scripts/`: Contém scripts utilitários, como o de inicialização do banco de dados.
+- `server.js`: O arquivo principal do servidor Express.
+- `package.json`: Define as dependências e scripts do projeto.
 
 ## Tecnologias Utilizadas
 
--   **Node.js:** Ambiente de execução JavaScript.
--   **Express.js:** Framework web para Node.js.
--   **SQLite:** Banco de dados leve e sem servidor.
--   **`better-sqlite3`:** Driver SQLite síncrono e rápido para Node.js.
--   **`cors`:** Middleware para habilitar Cross-Origin Resource Sharing.
--   **`dotenv`:** Para carregar variáveis de ambiente de um arquivo `.env`.
+- **Node.js**: Ambiente de execução JavaScript.
+- **Express.js**: Framework web para Node.js.
+- **SQLite3**: Banco de dados leve e sem servidor.
+- **CORS**: Middleware para habilitar o Cross-Origin Resource Sharing.
+- **nodemon**: Ferramenta para reiniciar automaticamente o servidor durante o desenvolvimento.
 
 ## Como Rodar Localmente
 
-1.  **Navegue até a pasta `backend`:**
+1.  **Navegue até este diretório (`backend/`):**
     \`\`\`bash
     cd backend
     \`\`\`
@@ -36,10 +32,10 @@ Este é o backend da aplicação de escala de sobreaviso, construído com Node.j
     \`\`\`
 
 3.  **Inicialize o banco de dados:**
-    Este script cria o arquivo `database.sqlite` e as tabelas necessárias se elas não existirem.
     \`\`\`bash
     npm run init-db
     \`\`\`
+    Este script criará o arquivo `database.sqlite` no diretório `database/` e as tabelas necessárias (`professionals`, `schedule`, `history`, `config`).
 
 4.  **Inicie o servidor:**
     \`\`\`bash
@@ -47,52 +43,41 @@ Este é o backend da aplicação de escala de sobreaviso, construído com Node.j
     \`\`\`
     O servidor estará rodando em `http://localhost:3001`.
 
+    Para desenvolvimento com reinício automático:
+    \`\`\`bash
+    npm run dev
+    \`\`\`
+
 ## Endpoints da API
 
-A API está disponível em `http://localhost:3001/api`.
+Todos os endpoints são prefixados com `/api`.
 
-### Configurações (`/api/config`)
+-   **Profissionais (`/api/professionals`)**
+    -   `GET /api/professionals`: Retorna todos os profissionais.
+    -   `POST /api/professionals`: Adiciona um novo profissional.
+    -   `PUT /api/professionals/:id`: Atualiza um profissional existente.
+    -   `DELETE /api/professionals/:id`: Exclui um profissional.
 
--   `GET /api/config`: Obtém as configurações atuais (feriados, etc.).
--   `POST /api/config`: Atualiza as configurações.
+-   **Escala (`/api/schedule`)**
+    -   `GET /api/schedule/:year/:month`: Retorna a escala para um mês e ano específicos.
+    -   `POST /api/schedule`: Adiciona ou atualiza uma entrada na escala.
 
-### Profissionais (`/api/professionals`)
+-   **Histórico (`/api/history`)**
+    -   `GET /api/history`: Retorna todas as entradas do histórico.
+    -   `POST /api/history`: Adiciona uma nova entrada ao histórico.
+    -   `DELETE /api/history/:id`: Exclui uma entrada do histórico.
 
--   `GET /api/professionals`: Lista todos os profissionais.
--   `GET /api/professionals/:id`: Obtém um profissional específico.
--   `POST /api/professionals`: Adiciona um novo profissional.
--   `PUT /api/professionals/:id`: Atualiza um profissional existente.
--   `DELETE /api/professionals/:id`: Remove um profissional.
+-   **Configuração (`/api/config`)**
+    -   `GET /api/config`: Retorna as configurações do sistema.
+    -   `POST /api/config`: Atualiza as configurações do sistema.
 
-### Escalas (`/api/schedule`)
+-   **Status (`/api/status`)**
+    -   `GET /api/status`: Retorna o status do backend e da conexão com o banco de dados.
 
--   `GET /api/schedule/:year/:month`: Obtém a escala para um mês e ano específicos.
--   `POST /api/schedule`: Adiciona ou atualiza uma entrada na escala.
--   `DELETE /api/schedule/:id`: Remove uma entrada da escala.
+## Banco de Dados
 
-### Histórico (`/api/history`)
-
--   `GET /api/history`: Lista todas as entradas do histórico.
--   `GET /api/history/:year/:month`: Obtém o histórico para um mês e ano específicos.
--   `POST /api/history`: Adiciona uma nova entrada ao histórico.
+O banco de dados é um arquivo SQLite (`database.sqlite`) localizado no diretório `database/`. Ele é criado e inicializado automaticamente pelo script `npm run init-db`.
 
 ## Variáveis de Ambiente
 
-O backend utiliza variáveis de ambiente, que podem ser definidas em um arquivo `.env` na raiz da pasta `backend`.
-
--   `PORT`: Porta em que o servidor Express será executado (padrão: `3001`).
--   `DATABASE_PATH`: Caminho para o arquivo do banco de dados SQLite (padrão: `./database/database.sqlite`).
-
-Exemplo de `.env`:
-\`\`\`
-PORT=3001
-DATABASE_PATH=./database/database.sqlite
-\`\`\`
-
-## Docker
-
-Este backend é projetado para ser executado em um contêiner Docker. Consulte o `Dockerfile` na raiz da pasta `backend` e o `docker-compose.yml` na raiz do projeto para detalhes sobre a conteinerização.
-
-## Contribuição
-
-Sinta-se à vontade para contribuir com melhorias, correções de bugs ou novas funcionalidades.
+Atualmente, não há variáveis de ambiente críticas para a execução local, mas você pode usar um arquivo `.env` para configurar a porta ou outras opções se necessário.

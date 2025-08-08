@@ -1,5 +1,7 @@
 @echo off
 echo Iniciando o frontend...
+cd %~dp0
+npm install
 
 :: Define a variável de ambiente para o frontend
 :: No ambiente Docker, esta variável será definida no Dockerfile

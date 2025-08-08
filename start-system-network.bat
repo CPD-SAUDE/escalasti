@@ -8,6 +8,14 @@ REM Este script e para iniciar o sistema em um ambiente de rede local
 REM sem Docker Compose, onde o backend e o frontend precisam se comunicar
 REM usando o IP da maquina.
 
+REM Chama o script de configuração de rede
+call configure-network.bat
+if %errorlevel% neq 0 (
+    echo Erro na configuração de rede.
+    pause
+    exit /b %errorlevel%
+)
+
 REM Obtem o IP da rede do backend
 echo Obtendo o IP da rede...
 for /f "delims=" %%i in ('node backend\scripts\get-network-ip.js') do set NETWORK_IP=%%i
@@ -20,22 +28,25 @@ if "%NETWORK_IP%"=="" (
 
 echo IP da rede detectado: %NETWORK_IP%
 
-REM Inicia o backend em uma nova janela do CMD
 echo.
 echo --- Iniciando o Backend em uma nova janela ---
-start cmd /k "cd /d "%~dp0\backend" && npm start"
+start cmd /k "cd /d "%~dp0\backend" && npm install && npm run init-db && npm start"
 
 REM Aguarda um pouco para o backend iniciar
+echo.
+echo Aguardando o backend iniciar (5 segundos)...
 timeout /t 5 /nobreak >nul
 
-REM Define a variavel de ambiente NEXT_PUBLIC_API_URL para o frontend
 echo.
 echo --- Iniciando o Frontend ---
 echo Definindo NEXT_PUBLIC_API_URL para o frontend como: http://%NETWORK_IP%:3001/api
 set NEXT_PUBLIC_API_URL=http://%NETWORK_IP%:3001/api
 
 REM Inicia o frontend na janela atual
-call npm start
+echo.
+echo Iniciando o frontend...
+npm install
+npm run dev
 
 echo.
 echo ==================================================
