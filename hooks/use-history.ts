@@ -31,9 +31,11 @@ export function useHistory() {
     try {
       await addHistoryEntry(entry);
       await fetchHistory(); // Recarrega o histórico após adicionar
+      return true;
     } catch (err) {
       setError('Erro ao adicionar entrada de histórico.');
       console.error(err);
+      return false;
     } finally {
       setIsLoading(false);
     }
@@ -45,13 +47,15 @@ export function useHistory() {
     try {
       await deleteHistoryEntry(id);
       await fetchHistory(); // Recarrega o histórico após deletar
+      return true;
     } catch (err) {
       setError('Erro ao remover entrada de histórico.');
       console.error(err);
+      return false;
     } finally {
       setIsLoading(false);
     }
   }, [fetchHistory]);
 
-  return { history, isLoading, error, addEntry, deleteEntry, fetchHistory };
+  return { history, isLoading, error, addEntry, deleteEntry, refetchHistory: fetchHistory };
 }

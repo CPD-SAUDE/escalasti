@@ -1,148 +1,121 @@
 # Sistema de Escala de Sobreaviso
 
-Este é um sistema para gerenciar escalas de sobreaviso, composto por um frontend em Next.js e um backend em Node.js (Express) com SQLite.
+Este é um sistema para gerenciar escalas de sobreaviso, desenvolvido com Next.js para o frontend e Node.js/Express para o backend, utilizando SQLite como banco de dados. O sistema é conteinerizado com Docker para facilitar a implantação e o desenvolvimento.
+
+## Funcionalidades
+
+-   Gerenciamento de profissionais (cadastro, edição, exclusão).
+-   Criação e visualização de escalas de sobreaviso por mês.
+-   Atribuição de profissionais a dias específicos na escala.
+-   Visualização do histórico de escalas.
+-   Configuração de feriados e dias não úteis.
 
 ## Tecnologias Utilizadas
 
--   **Frontend:** Next.js (React), Tailwind CSS, Shadcn/ui
--   **Backend:** Node.js, Express.js, SQLite3
--   **Containerização:** Docker, Docker Compose
+**Frontend:**
+-   Next.js (React Framework)
+-   TypeScript
+-   Tailwind CSS
+-   Shadcn/ui
+-   Lucide React Icons
 
-## Como Rodar o Projeto (com Docker Compose)
+**Backend:**
+-   Node.js
+-   Express.js
+-   SQLite (com `sqlite3` e `better-sqlite3`)
+-   CORS
 
-A maneira recomendada de rodar este projeto é usando Docker Compose, que orquestra tanto o frontend quanto o backend.
+**Conteinerização:**
+-   Docker
+-   Docker Compose
 
-### Pré-requisitos
+## Pré-requisitos
 
--   [Docker Desktop](https://www.docker.com/products/docker-desktop/) (inclui Docker Engine e Docker Compose) instalado e em execução.
+-   Node.js (versão 18 ou superior)
+-   npm (gerenciador de pacotes do Node.js)
+-   Docker Desktop (inclui Docker Engine e Docker Compose)
 
-### Passos para Iniciar
+## Como Rodar o Projeto
+
+Existem duas formas principais de rodar o projeto: via Docker Compose (recomendado para desenvolvimento e produção) ou localmente (para desenvolvimento específico de uma parte).
+
+### Opção 1: Com Docker Compose (Recomendado)
+
+Esta é a forma mais fácil e consistente de rodar o sistema, pois ele gerencia o frontend, o backend e o banco de dados em contêineres isolados.
 
 1.  **Clone o repositório:**
     \`\`\`bash
     git clone https://github.com/CPD-SAUDE/escalasti.git
     cd escalasti
     \`\`\`
-
-2.  **Inicie os serviços Docker:**
-    Na raiz do projeto (onde o `docker-compose.yml` está), execute:
+2.  **Construa e inicie os contêineres:**
+    Na raiz do projeto (onde está o `docker-compose.yml`), execute:
     \`\`\`bash
     docker compose up --build -d
     \`\`\`
-    -   `--build`: Garante que as imagens Docker sejam construídas (ou reconstruídas) antes de iniciar os contêineres.
-    -   `-d`: Inicia os contêineres em modo "detached" (em segundo plano).
+    -   `--build`: Constrói as imagens Docker para o frontend e o backend.
+    -   `-d`: Executa os contêineres em modo "detached" (em segundo plano).
 
-3.  **Acesse a aplicação:**
-    Após os contêineres estarem em execução, o frontend estará disponível em:
-    [http://localhost:3000](http://localhost:3000)
+    Este comando irá:
+    -   Construir a imagem do backend (baseada no `backend/Dockerfile`).
+    -   Construir a imagem do frontend (baseada no `Dockerfile` na raiz).
+    -   Criar uma rede Docker para que os serviços possam se comunicar.
+    -   Iniciar o contêiner do backend na porta 3001.
+    -   Iniciar o contêiner do frontend na porta 3000, configurado para se comunicar com o backend usando o nome do serviço (`http://backend:3001/api`).
+    -   Inicializar o banco de dados SQLite no backend (se ainda não existir) e persistir os dados em um volume Docker chamado `backend_data`.
 
-    O backend (API) estará disponível em:
-    [http://localhost:3001/api](http://localhost:3001/api)
+3.  **Acesse o sistema:**
+    Abra seu navegador e acesse:
+    \`\`\`
+    http://localhost:3000
+    \`\`\`
 
-### Parar os Serviços Docker
+4.  **Para parar o sistema:**
+    Na raiz do projeto, execute:
+    \`\`\`bash
+    docker compose down
+    \`\`\`
+    Isso irá parar e remover os contêineres e a rede. O volume `backend_data` (com seus dados) será mantido por padrão. Para remover também o volume, use `docker compose down --volumes`.
 
-Para parar e remover os contêineres, redes e volumes criados pelo Docker Compose:
-\`\`\`bash
-docker compose down
-\`\`\`
+### Opção 2: Localmente (para Desenvolvimento)
 
-### Reconstruir Imagens (se houver mudanças nos Dockerfiles ou dependências)
+Se você preferir rodar o frontend e/ou o backend diretamente na sua máquina para desenvolvimento, siga os passos abaixo.
 
-Se você fizer alterações nos `Dockerfile`s ou nas dependências (`package.json`), você precisará reconstruir as imagens:
-\`\`\`bash
-docker compose build
-\`\`\`
-E então, inicie novamente com `docker compose up -d`.
-
-## Como Rodar o Projeto (Localmente - Sem Docker)
-
-Se você preferir rodar o frontend e o backend separadamente sem Docker Compose:
-
-### Backend (Node.js)
+#### 2.1. Rodar o Backend Localmente
 
 1.  **Navegue até a pasta do backend:**
     \`\`\`bash
     cd backend
     \`\`\`
-
 2.  **Instale as dependências:**
     \`\`\`bash
-    npm install --force
+    npm install
     \`\`\`
-
 3.  **Inicialize o banco de dados (se for a primeira vez):**
     \`\`\`bash
     npm run init-db
     \`\`\`
-
-4.  **Inicie o servidor de desenvolvimento:**
+4.  **Inicie o servidor:**
     \`\`\`bash
-    npm run dev
+    npm start
     \`\`\`
     O backend estará rodando em `http://localhost:3001`.
 
-### Frontend (Next.js)
+#### 2.2. Rodar o Frontend Localmente
 
-1.  **Volte para a raiz do projeto e navegue até a pasta do frontend:**
+1.  **Certifique-se de que o Backend está rodando** (seja localmente ou via Docker Compose).
+2.  **Navegue até a raiz do projeto:**
     \`\`\`bash
-    cd ..
+    cd .. # Se você estiver na pasta backend
     \`\`\`
-    (Você já deve estar na raiz se seguiu os passos do backend)
-
-2.  **Instale as dependências:**
+3.  **Instale as dependências do frontend:**
     \`\`\`bash
     npm install --force
     \`\`\`
+    **Nota:** O uso de `--force` é necessário devido a possíveis problemas de resolução de dependências.
 
-3.  **Configure a variável de ambiente da API:**
-    Crie um arquivo `.env.local` na raiz do projeto e adicione:
-    \`\`\`
-    NEXT_PUBLIC_API_URL=http://localhost:3001/api
-    \`\`\`
-    -   **No Linux/macOS:**
-        \`\`\`bash
-        export NEXT_PUBLIC_API_URL=http://localhost:3001/api
-        npm run dev
-        \`\`\`
-4.  **Inicie o servidor de desenvolvimento do frontend:**
-    \`\`\`bash
-    npm run dev
-    \`\`\`
-    O frontend estará rodando em `http://localhost:3000`.
-
-## Estrutura do Projeto
-
-\`\`\`
-.
-├── app/                  # Configurações globais do Next.js (layout, page)
-├── backend/              # Código-fonte do servidor Node.js/Express
-│   ├── controllers/      # Lógica de negócio para as rotas
-│   ├── database/         # Configuração do banco de dados SQLite
-│   ├── routes/           # Definição das rotas da API
-│   ├── scripts/          # Scripts de inicialização (ex: init-database)
-│   ├── server.js         # Ponto de entrada do servidor
-│   └── package.json      # Dependências do backend
-├── components/           # Componentes React reutilizáveis
-│   └── ui/               # Componentes Shadcn/ui
-├── hooks/                # Hooks React personalizados
-├── lib/                  # Funções utilitárias e definições de tipos
-├── public/               # Ativos estáticos (imagens, etc.)
-├── styles/               # Estilos globais (Tailwind CSS)
-├── docker-compose.yml    # Definição dos serviços Docker (frontend e backend)
-├── Dockerfile            # Dockerfile para o frontend (Next.js)
-├── backend/Dockerfile    # Dockerfile para o backend (Node.js)
-├── package.json          # Dependências do frontend
-├── next.config.mjs       # Configuração do Next.js
-├── postcss.config.mjs    # Configuração do PostCSS
-├── tailwind.config.ts    # Configuração do Tailwind CSS
-├── tsconfig.json         # Configuração do TypeScript
-└── ... outros arquivos de configuração e scripts
-\`\`\`
-
-## Contribuição
-
-Sinta-se à vontade para contribuir com melhorias, correções de bugs ou novas funcionalidades. Por favor, siga as boas práticas de desenvolvimento e crie pull requests.
-
-## Licença
-
-[Adicione sua licença aqui, por exemplo, MIT]
+4.  **Defina a variável de ambiente `NEXT_PUBLIC_API_URL`:**
+    Esta variável informa ao frontend onde a API do backend está localizada.
+    -   **No Windows (PowerShell):**
+        ```powershell
+        $env:NEXT_PUBLIC_API_URL="http://localhost:3001/api"

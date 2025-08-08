@@ -1,194 +1,190 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { ProfessionalColorPicker } from '@/components/professional-color-picker'
-import { addProfessional, deleteProfessional, getAllProfessionals, updateProfessional } from '@/lib/api'
+import { useState } from 'react'
 import { Professional } from '@/lib/types'
-import { Trash2, Edit, Save, XCircle } from 'lucide-react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
+import { ProfessionalColorPicker } from './professional-color-picker'
+import { Trash2, Edit, PlusCircle } from 'lucide-react'
+import { Alert, AlertDescription, AlertTitle } from './ui/alert'
 
-export function ProfessionalManagement() {
-  const [professionals, setProfessionals] = useState<Professional[]>([])
-  const [newProfessionalName, setNewProfessionalName] = useState('')
-  const [newProfessionalColor, setNewProfessionalColor] = useState('#FF6B6B') // Default color
-  const [editingProfessionalId, setEditingProfessionalId] = useState<number | null>(null)
-  const [editingProfessionalName, setEditingProfessionalName] = useState('')
-  const [editingProfessionalColor, setEditingProfessionalColor] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
+interface ProfessionalManagementProps {
+  professionals: Professional[]
+  addProfessional: (name: string, color: string) => Promise<void>
+  updateProfessional: (id: number, name: string, color: string) => Promise<void>
+  deleteProfessional: (id: number) => Promise<void>
+}
+
+export default function ProfessionalManagement({
+  professionals,
+  addProfessional,
+  updateProfessional,
+  deleteProfessional,
+}: ProfessionalManagementProps) {
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [currentProfessional, setCurrentProfessional] = useState<Professional | null>(null)
+  const [name, setName] = useState('')
+  const [color, setColor] = useState('#4ECDC4') // Default color
   const [error, setError] = useState<string | null>(null)
 
-  const fetchProfessionals = async () => {
-    setIsLoading(true)
+  const handleOpenDialog = (professional?: Professional) => {
     setError(null)
-    try {
-      const data = await getAllProfessionals()
-      setProfessionals(data)
-    } catch (err) {
-      setError('Erro ao carregar profissionais.')
-      console.error(err)
-    } finally {
-      setIsLoading(false)
+    if (professional) {
+      setCurrentProfessional(professional)
+      setName(professional.name)
+      setColor(professional.color)
+    } else {
+      setCurrentProfessional(null)
+      setName('')
+      setColor('#4ECDC4') // Reset to default for new
     }
+    setIsDialogOpen(true)
   }
 
-  useEffect(() => {
-    fetchProfessionals()
-  }, [])
-
-  const handleAddProfessional = async () => {
-    if (!newProfessionalName.trim()) {
-      setError('O nome do profissional não pode ser vazio.')
+  const handleSubmit = async () => {
+    setError(null)
+    if (!name.trim()) {
+      setError('O nome do profissional é obrigatório.')
       return
     }
-    setIsLoading(true)
-    setError(null)
-    try {
-      await addProfessional({ name: newProfessionalName, color: newProfessionalColor })
-      setNewProfessionalName('')
-      setNewProfessionalColor('#FF6B6B') // Reset to default
-      await fetchProfessionals()
-    } catch (err) {
-      setError('Erro ao adicionar profissional.')
-      console.error(err)
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const handleDeleteProfessional = async (id: number) => {
-    if (!window.confirm('Tem certeza que deseja remover este profissional?')) {
+    if (!color) {
+      setError('A cor do profissional é obrigatória.')
       return
     }
-    setIsLoading(true)
-    setError(null)
+
     try {
-      await deleteProfessional(id)
-      await fetchProfessionals()
-    } catch (err) {
-      setError('Erro ao remover profissional.')
-      console.error(err)
-    } finally {
-      setIsLoading(false)
+      if (currentProfessional) {
+        await updateProfessional(currentProfessional.id, name, color)
+      } else {
+        await addProfessional(name, color)
+      }
+      setIsDialogOpen(false)
+    } catch (err: any) {
+      setError(err.message || 'Ocorreu um erro ao salvar o profissional.')
     }
   }
 
-  const handleEditClick = (professional: Professional) => {
-    setEditingProfessionalId(professional.id)
-    setEditingProfessionalName(professional.name)
-    setEditingProfessionalColor(professional.color)
-  }
-
-  const handleSaveEdit = async (id: number) => {
-    if (!editingProfessionalName.trim()) {
-      setError('O nome do profissional não pode ser vazio.')
-      return
+  const handleDelete = async (id: number) => {
+    if (window.confirm('Tem certeza que deseja excluir este profissional?')) {
+      try {
+        await deleteProfessional(id)
+      } catch (err: any) {
+        setError(err.message || 'Ocorreu um erro ao excluir o profissional.')
+      }
     }
-    setIsLoading(true)
-    setError(null)
-    try {
-      await updateProfessional(id, { name: editingProfessionalName, color: editingProfessionalColor })
-      setEditingProfessionalId(null)
-      setEditingProfessionalName('')
-      setEditingProfessionalColor('')
-      await fetchProfessionals()
-    } catch (err) {
-      setError('Erro ao atualizar profissional.')
-      console.error(err)
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const handleCancelEdit = () => {
-    setEditingProfessionalId(null)
-    setEditingProfessionalName('')
-    setEditingProfessionalColor('')
-    setError(null) // Clear any edit-related errors
   }
 
   return (
-    <Card className="flex-1">
-      <CardHeader>
-        <CardTitle>Gerenciar Profissionais</CardTitle>
-      </CardHeader>
-      <CardContent className="grid gap-4">
-        <div className="grid gap-2">
-          <Label htmlFor="newProfessionalName">Nome do Profissional</Label>
-          <Input
-            id="newProfessionalName"
-            placeholder="Nome completo"
-            value={newProfessionalName}
-            onChange={(e) => setNewProfessionalName(e.target.value)}
-            disabled={isLoading}
-          />
-        </div>
-        <div className="grid gap-2">
-          <Label htmlFor="newProfessionalColor">Cor</Label>
-          <ProfessionalColorPicker
-            selectedColor={newProfessionalColor}
-            onSelectColor={setNewProfessionalColor}
-          />
-        </div>
-        {error && <p className="text-red-500 text-sm">{error}</p>}
-        <Button onClick={handleAddProfessional} disabled={isLoading}>
-          {isLoading ? 'Adicionando...' : 'Adicionar Profissional'}
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-2xl font-bold">Profissionais</CardTitle>
+        <Button onClick={() => handleOpenDialog()} size="sm">
+          <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Profissional
         </Button>
-
-        <ScrollArea className="h-[300px] w-full rounded-md border p-4">
-          <div className="space-y-4">
-            {professionals.length === 0 && !isLoading && <p className="text-center text-muted-foreground">Nenhum profissional cadastrado.</p>}
-            {professionals.map((professional) => (
-              <div key={professional.id} className="flex items-center justify-between border-b pb-2 last:border-b-0">
-                {editingProfessionalId === professional.id ? (
-                  <div className="flex-1 grid gap-2 pr-2">
-                    <Input
-                      value={editingProfessionalName}
-                      onChange={(e) => setEditingProfessionalName(e.target.value)}
-                      disabled={isLoading}
-                    />
-                    <ProfessionalColorPicker
-                      selectedColor={editingProfessionalColor}
-                      onSelectColor={setEditingProfessionalColor}
-                    />
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="w-4 h-4 rounded-full border"
-                      style={{ backgroundColor: professional.color }}
-                    />
-                    <span className="font-medium">{professional.name}</span>
-                  </div>
-                )}
-                <div className="flex gap-1">
-                  {editingProfessionalId === professional.id ? (
-                    <>
-                      <Button variant="ghost" size="icon" onClick={() => handleSaveEdit(professional.id)} disabled={isLoading}>
-                        <Save className="h-4 w-4 text-green-500" />
-                      </Button>
-                      <Button variant="ghost" size="icon" onClick={handleCancelEdit} disabled={isLoading}>
-                        <XCircle className="h-4 w-4 text-gray-500" />
-                      </Button>
-                    </>
-                  ) : (
-                    <>
-                      <Button variant="ghost" size="icon" onClick={() => handleEditClick(professional)} disabled={isLoading}>
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" onClick={() => handleDeleteProfessional(professional.id)} disabled={isLoading}>
-                        <Trash2 className="h-4 w-4 text-red-500" />
-                      </Button>
-                    </>
-                  )}
+      </CardHeader>
+      <CardContent>
+        {error && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertTitle>Erro</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+        <div className="grid gap-4">
+          {professionals.length === 0 ? (
+            <p className="text-center text-gray-500">Nenhum profissional cadastrado.</p>
+          ) : (
+            professionals.map((professional) => (
+              <div
+                key={professional.id}
+                className="flex items-center justify-between rounded-md border p-3 shadow-sm"
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className="h-6 w-6 rounded-full border"
+                    style={{ backgroundColor: professional.color }}
+                  />
+                  <span className="font-medium">{professional.name}</span>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => handleOpenDialog(professional)}
+                  >
+                    <Edit className="h-4 w-4" />
+                    <span className="sr-only">Editar</span>
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="icon"
+                    onClick={() => handleDelete(professional.id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    <span className="sr-only">Excluir</span>
+                  </Button>
                 </div>
               </div>
-            ))}
-          </div>
-        </ScrollArea>
+            ))
+          )}
+        </div>
+
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>
+                {currentProfessional ? 'Editar Profissional' : 'Adicionar Profissional'}
+              </DialogTitle>
+              <DialogDescription>
+                {currentProfessional
+                  ? 'Faça alterações no profissional existente aqui.'
+                  : 'Adicione um novo profissional à sua lista.'}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              {error && (
+                <Alert variant="destructive">
+                  <AlertTitle>Erro</AlertTitle>
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="name" className="text-right">
+                  Nome
+                </Label>
+                <Input
+                  id="name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="col-span-3"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="color" className="text-right">
+                  Cor
+                </Label>
+                <div className="col-span-3">
+                  <ProfessionalColorPicker selectedColor={color} onSelectColor={setColor} />
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="submit" onClick={handleSubmit}>
+                Salvar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   )

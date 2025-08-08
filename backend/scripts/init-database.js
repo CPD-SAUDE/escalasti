@@ -1,81 +1,70 @@
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
-const fs = require('fs');
+const db = require('../database/database');
 
-// Define o caminho para o arquivo do banco de dados
-// No ambiente Docker, /app/database será um volume persistente
-const DB_DIR = process.env.NODE_ENV === 'production'
-  ? '/app/database'
-  : path.resolve(__dirname, '../database'); // Ajustado para apontar para a pasta database no diretório pai
+db.serialize(() => {
+  // Tabela de Profissionais
+  db.run(`
+    CREATE TABLE IF NOT EXISTS professionals (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      color TEXT NOT NULL
+    )
+  `, (err) => {
+    if (err) {
+      console.error("Erro ao criar tabela 'professionals':", err.message);
+    } else {
+      console.log("Tabela 'professionals' verificada/criada.");
+    }
+  });
 
-const DB_PATH = path.join(DB_DIR, 'database.db');
+  // Tabela de Escala
+  db.run(`
+    CREATE TABLE IF NOT EXISTS schedule (
+      id TEXT PRIMARY KEY,
+      date TEXT UNIQUE NOT NULL,
+      professionalId TEXT,
+      FOREIGN KEY (professionalId) REFERENCES professionals(id) ON DELETE SET NULL
+    )
+  `, (err) => {
+    if (err) {
+      console.error("Erro ao criar tabela 'schedule':", err.message);
+    } else {
+      console.log("Tabela 'schedule' verificada/criada.");
+    }
+  });
 
-// Garante que o diretório do banco de dados exista
-if (!fs.existsSync(DB_DIR)) {
-  fs.mkdirSync(DB_DIR, { recursive: true });
-  console.log(`Diretório do banco de dados criado: ${DB_DIR}`);
-}
+  // Tabela de Histórico
+  db.run(`
+    CREATE TABLE IF NOT EXISTS history (
+      id TEXT PRIMARY KEY,
+      date TEXT NOT NULL,
+      description TEXT NOT NULL
+    )
+  `, (err) => {
+    if (err) {
+      console.error("Erro ao criar tabela 'history':", err.message);
+    } else {
+      console.log("Tabela 'history' verificada/criada.");
+    }
+  });
 
-const db = new sqlite3.Database(DB_PATH, (err) => {
-  if (err) {
-    console.error('Erro ao conectar/criar o banco de dados SQLite:', err.message);
-  } else {
-    console.log('Conectado ao banco de dados SQLite em', DB_PATH);
-    db.serialize(() => {
-      // Tabela de Profissionais
-      db.run(`
-        CREATE TABLE IF NOT EXISTS professionals (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          name TEXT NOT NULL UNIQUE,
-          color TEXT NOT NULL
-        )
-      `, (err) => {
+  // Tabela de Configurações
+  db.run(`
+    CREATE TABLE IF NOT EXISTS config (
+      id INTEGER PRIMARY KEY,
+      backendIp TEXT
+    )
+  `, (err) => {
+    if (err) {
+      console.error("Erro ao criar tabela 'config':", err.message);
+    } else {
+      console.log("Tabela 'config' verificada/criada.");
+      db.run(`INSERT OR IGNORE INTO config (id, backendIp) VALUES (1, NULL)`, (err) => {
         if (err) {
-          console.error('Erro ao criar tabela professionals:', err.message);
+          console.error("Erro ao inserir configuração padrão:", err.message);
         } else {
-          console.log('Tabela professionals verificada/criada.');
+          console.log("Configuração padrão verificada/inserida.");
         }
       });
-
-      // Tabela de Escala
-      db.run(`
-        CREATE TABLE IF NOT EXISTS schedule (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          date TEXT NOT NULL UNIQUE,
-          professionalId INTEGER,
-          FOREIGN KEY (professionalId) REFERENCES professionals(id) ON DELETE SET NULL
-        )
-      `, (err) => {
-        if (err) {
-          console.error('Erro ao criar tabela schedule:', err.message);
-        } else {
-          console.log('Tabela schedule verificada/criada.');
-        }
-      });
-
-      // Tabela de Histórico
-      db.run(`
-        CREATE TABLE IF NOT EXISTS history (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          date TEXT NOT NULL,
-          description TEXT NOT NULL
-        )
-      `, (err) => {
-        if (err) {
-          console.error('Erro ao criar tabela history:', err.message);
-        } else {
-          console.log('Tabela history verificada/criada.');
-        }
-      });
-    });
-  }
-});
-
-// Fecha a conexão após a inicialização (importante para scripts de execução única)
-db.close((err) => {
-  if (err) {
-    console.error('Erro ao fechar o banco de dados:', err.message);
-  } else {
-    console.log('Conexão com o banco de dados fechada após inicialização.');
-  }
+    }
+  });
 });

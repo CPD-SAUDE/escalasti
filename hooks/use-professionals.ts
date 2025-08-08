@@ -31,9 +31,11 @@ export function useProfessionals() {
     try {
       await addProfessional(professional);
       await fetchProfessionals(); // Recarrega a lista após adicionar
+      return true;
     } catch (err) {
       setError('Erro ao adicionar profissional.');
       console.error(err);
+      return false;
     } finally {
       setIsLoading(false);
     }
@@ -45,9 +47,11 @@ export function useProfessionals() {
     try {
       await updateProfessional(id, professional);
       await fetchProfessionals(); // Recarrega a lista após atualizar
+      return true;
     } catch (err) {
       setError('Erro ao atualizar profissional.');
       console.error(err);
+      return false;
     } finally {
       setIsLoading(false);
     }
@@ -59,13 +63,15 @@ export function useProfessionals() {
     try {
       await deleteProfessional(id);
       await fetchProfessionals(); // Recarrega a lista após deletar
+      return true;
     } catch (err) {
       setError('Erro ao remover profissional.');
       console.error(err);
+      return false;
     } finally {
       setIsLoading(false);
     }
   }, [fetchProfessionals]);
 
-  return { professionals, isLoading, error, addProf, updateProf, deleteProf, fetchProfessionals };
+  return { professionals, isLoading, error, addProf, updateProf, deleteProf, refetchProfessionals: fetchProfessionals };
 }

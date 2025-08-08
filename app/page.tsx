@@ -283,82 +283,102 @@ export default function Home() {
   return (
     <div className={cn("flex flex-col min-h-screen bg-gray-100 dark:bg-gray-900", isPrintPreviewActive && "print-preview-active-body-wrapper")}> {/* Add wrapper class */}
       {/* Main content, hidden when in print preview */}
-      <header className="flex flex-col md:flex-row items-center justify-between gap-4 mb-8">
-        <div className="flex items-center gap-4">
-          <Image
-            src="/images/logo.png"
-            alt="Logo do Sistema"
-            width={64}
-            height={64}
-            className="rounded-full shadow-md"
-          />
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-50">
-            Sistema de Escala de Sobreaviso
-          </h1>
-        </div>
-        <div className="flex flex-wrap justify-center md:justify-end gap-2">
-          <MonthSelector selectedMonth={selectedMonth} onMonthChange={setSelectedMonth} />
-          <Button onClick={handleOpenHistoryDialog} variant="outline" size="sm">
-            <History className="mr-2 h-4 w-4" />
-            Histórico
-          </Button>
-          <Button onClick={handlePrintPreview}>
-            Visualizar Impressão
-          </Button>
-          <ApiStatus />
-        </div>
+      <header className="bg-white dark:bg-gray-800 shadow-sm py-4 px-6 flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-50">Sistema de Escala de Sobreaviso</h1>
+        <ApiStatus />
       </header>
-
-      <main className="flex-1">
-        <Tabs defaultValue="schedule" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 lg:grid-cols-4 mb-4">
-            <TabsTrigger value="schedule">Escala</TabsTrigger>
-            <TabsTrigger value="professionals">Profissionais</TabsTrigger>
-            <TabsTrigger value="summary">Resumo</TabsTrigger>
-            {/* <TabsTrigger value="settings">Configurações</TabsTrigger> */}
-          </TabsList>
-
-          <TabsContent value="schedule" className="mt-4">
-            <div className="flex justify-center mb-4">
-              <MonthSelector selectedMonth={selectedMonth} onMonthChange={setSelectedMonth} />
-            </div>
-            <ScheduleCalendar
-              year={selectedMonth.getFullYear()}
-              month={selectedMonth.getMonth() + 1}
-              professionals={displayedProfessionals}
-              scheduleEntries={displayedScheduleEntries}
-              onUpdateEntry={handleUpdateScheduleEntry}
-              onDeleteEntry={handleDeleteScheduleEntry}
-            />
-          </TabsContent>
-
-          <TabsContent value="professionals" className="mt-4">
-            <ProfessionalManagement
-              professionals={displayedProfessionals}
-              addProfessional={addProfessional}
-              updateProfessional={updateProfessional}
-              deleteProfessional={deleteProfessional}
-              activeProfessionalIds={activeProfessionalIds}
-              onToggleProfessionalActive={handleToggleProfessionalActive}
-            />
-          </TabsContent>
-
-          <TabsContent value="summary" className="mt-4">
-            <ScheduleSummary
-              professionals={displayedProfessionals}
-              hoursSummary={professionalHoursSummary}
-            />
-          </TabsContent>
-
-          {/* <TabsContent value="settings">
-            <Card>
-              <CardContent className="p-6">
-                <h2 className="text-2xl font-semibold mb-4">Configurações do Sistema</h2>
-                <p className="text-muted-foreground">Em desenvolvimento...</p>
-              </CardContent>
-            </Card>
-          </TabsContent> */}
-        </Tabs>
+      <main className="flex-1 p-6 grid gap-6 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="lg:col-span-2 xl:col-span-3 flex flex-col gap-6">
+          <div className="flex items-center justify-between">
+            <MonthSelector selectedMonth={selectedMonth} onMonthChange={setSelectedMonth} />
+            <Button onClick={handleOpenHistoryDialog} variant="outline" size="sm">
+              <History className="mr-2 h-4 w-4" />
+              Histórico
+            </Button>
+            <Button onClick={handlePrintPreview}> {/* Changed to handlePrintPreview */}
+              Visualizar Impressão
+            </Button>
+          </div>
+          <ScheduleCalendar
+            year={selectedMonth.getFullYear()}
+            month={selectedMonth.getMonth() + 1}
+            professionals={displayedProfessionals}
+            scheduleEntries={displayedScheduleEntries}
+            onUpdateEntry={handleUpdateScheduleEntry}
+            onDeleteEntry={handleDeleteScheduleEntry}
+          />
+          <ScheduleSummary
+            professionals={displayedProfessionals}
+            hoursSummary={professionalHoursSummary}
+          />
+        </div>
+        <div className="lg:col-span-1 xl:col-span-1 flex flex-col gap-6">
+          <div className="flex space-x-2">
+            <Select value={scheduleGenerationMode} onValueChange={(value: 'daily' | 'weekly') => setScheduleGenerationMode(value)}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Modo de Geração" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="daily">Rotação Diária</SelectItem>
+                <SelectItem value="weekly">Rotação Semanal</SelectItem>
+              </SelectContent>
+            </Select>
+            {/* NOVO: Seleção do profissional que inicia a escala */}
+            <Select
+              value={startingProfessionalId || ''}
+              onValueChange={setStartingProfessionalId}
+              disabled={activeProfessionalIds.length === 0}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Começar com..." />
+              </SelectTrigger>
+              <SelectContent>
+                {activeProfessionalIds.map(profId => {
+                  const prof = professionals.find(p => p.id === profId);
+                  return prof ? (
+                    <SelectItem key={prof.id} value={prof.id}>
+                      {prof.name}
+                    </SelectItem>
+                  ) : null;
+                })}
+              </SelectContent>
+            </Select>
+            <Button 
+              onClick={generateAutomaticSchedule} 
+              disabled={activeProfessionalIds.length === 0 || isLoadingSchedule || !startingProfessionalId}
+            >
+              {isLoadingSchedule ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Gerando...
+                </>
+              ) : (
+                'Gerar Escala Automática'
+              )}
+            </Button>
+            <Button 
+              onClick={createScheduleRecord}
+              disabled={schedule.length === 0 || isLoadingHistory}
+            >
+              {isLoadingHistory ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Salvando...
+                </>
+              ) : (
+                'Criar Registro de Escala'
+              )}
+            </Button>
+          </div>
+          <ProfessionalManagement
+            professionals={displayedProfessionals}
+            addProfessional={addProfessional}
+            updateProfessional={updateProfessional}
+            deleteProfessional={deleteProfessional}
+            activeProfessionalIds={activeProfessionalIds}
+            onToggleProfessionalActive={handleToggleProfessionalActive}
+          />
+        </div>
       </main>
 
       {/* Print preview content, shown when in print preview */}
@@ -407,7 +427,6 @@ export default function Home() {
           </div>
         </div>
       )}
-
       <HistoryDialog
         isOpen={isHistoryDialogOpen}
         onClose={() => setIsHistoryDialogOpen(false)}

@@ -25,19 +25,21 @@ export function useConfig() {
     fetchConfig();
   }, [fetchConfig]);
 
-  const saveConfig = useCallback(async (newConfig: Partial<Config>) => {
+  const saveConfig = useCallback(async (newConfig: Config) => {
     setIsLoading(true);
     setError(null);
     try {
       await updateConfig(newConfig);
-      await fetchConfig(); // Recarrega a configuração após salvar
+      setConfig(newConfig); // Atualiza o estado local após sucesso
+      return true;
     } catch (err) {
       setError('Erro ao salvar configurações.');
       console.error(err);
+      return false;
     } finally {
       setIsLoading(false);
     }
-  }, [fetchConfig]);
+  }, []);
 
-  return { config, isLoading, error, saveConfig, fetchConfig };
+  return { config, isLoading, error, saveConfig, refetchConfig: fetchConfig };
 }

@@ -7,7 +7,7 @@ export interface Professional {
 export interface ScheduleEntry {
   id: number;
   date: string; // Formato 'YYYY-MM-DD'
-  professionalId: number | null; // ID do profissional ou null se não houver atribuição
+  professionalId: number | null; // Pode ser null se o dia estiver vazio
 }
 
 export interface HistoryEntry {
@@ -18,5 +18,5 @@ export interface HistoryEntry {
 
 export interface Config {
   id: number;
-  backendIp: string | null;
+  holidays: string[]; // Array de datas em formato 'YYYY-MM-DD'
 }

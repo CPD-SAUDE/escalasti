@@ -2,16 +2,15 @@ const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 
-// Define o caminho para o arquivo do banco de dados
-// Ele será criado na pasta 'database' dentro do diretório 'backend'
-const DB_PATH = path.resolve(__dirname, 'database.db');
+// Caminho para o arquivo do banco de dados
+const dbPath = process.env.DATABASE_PATH || path.join(__dirname, 'database.sqlite');
 
-// Conecta ao banco de dados SQLite
-const db = new sqlite3.Database(DB_PATH, (err) => {
+// Criar conexão com o banco de dados
+const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
-    console.error('Erro ao conectar ao banco de dados SQLite:', err.message);
+    console.error('Erro ao conectar com o banco de dados:', err.message);
   } else {
-    console.log('Conectado ao banco de dados SQLite em', DB_PATH);
+    console.log('Conectado ao banco de dados SQLite em: ' + dbPath);
   }
 });
 
@@ -64,6 +63,7 @@ function initDb() {
         console.log('Banco de dados e tabelas verificados/criados com sucesso.');
     } catch (error) {
         console.error('Erro ao inicializar o banco de dados:', error);
+        db.close(); // Fecha a conexão com o banco de dados em caso de erro
         process.exit(1); // Sai do processo se houver um erro crítico no DB
     }
 }

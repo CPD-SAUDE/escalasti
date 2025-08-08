@@ -1,78 +1,48 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { useEffect, useState } from 'react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Terminal, CheckCircle, XCircle } from 'lucide-react'
+import { CircleCheck, CircleX } from 'lucide-react'
+import { getApiStatus } from '@/lib/api'
 
 export function ApiStatus() {
-  const [backendStatus, setBackendStatus] = useState<'loading' | 'success' | 'error'>('loading')
-  const [backendMessage, setBackendMessage] = useState('Verificando status do backend...')
-  const [backendUrl, setBackendUrl] = useState('')
+  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
+  const [message, setMessage] = useState('Verificando status da API...')
 
   useEffect(() => {
-    const checkBackendStatus = async () => {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
-      setBackendUrl(apiUrl);
+    const checkStatus = async () => {
       try {
-        const response = await fetch(`${apiUrl}/status`);
-        if (response.ok) {
-          const data = await response.json();
-          setBackendStatus('success');
-          setBackendMessage(`Backend está online! ${data.database ? 'Banco de dados conectado.' : ''}`);
+        const response = await getApiStatus()
+        if (response.status === 'Backend is running!') {
+          setStatus('success')
+          setMessage('API do Backend está online.')
         } else {
-          setBackendStatus('error');
-          setBackendMessage(`Backend offline ou erro: ${response.status} ${response.statusText}`);
+          setStatus('error')
+          setMessage('API do Backend retornou um status inesperado.')
         }
       } catch (error) {
-        setBackendStatus('error');
-        setBackendMessage(`Não foi possível conectar ao backend. Verifique se o servidor está rodando em ${apiUrl}.`);
-        console.error('Erro ao verificar status do backend:', error);
+        console.error('Erro ao verificar status da API:', error)
+        setStatus('error')
+        setMessage('Não foi possível conectar à API do Backend. Verifique se o backend está rodando.')
       }
-    };
+    }
 
-    checkBackendStatus();
-    const interval = setInterval(checkBackendStatus, 10000); // Verifica a cada 10 segundos
+    checkStatus()
+    const interval = setInterval(checkStatus, 15000); // Verifica a cada 15 segundos
     return () => clearInterval(interval);
-  }, []);
-
-  const getStatusIcon = () => {
-    if (backendStatus === 'loading') return <Terminal className="h-4 w-4" />;
-    if (backendStatus === 'success') return <CheckCircle className="h-4 w-4 text-green-500" />;
-    return <XCircle className="h-4 w-4 text-red-500" />;
-  };
-
-  const getStatusColor = () => {
-    if (backendStatus === 'loading') return 'text-yellow-500';
-    if (backendStatus === 'success') return 'text-green-500';
-    return 'text-red-500';
-  };
+  }, [])
 
   return (
-    <Dialog>
-      <DialogTrigger asChild>
-        <Button variant="outline" className={`flex items-center gap-2 ${getStatusColor()}`}>
-          {getStatusIcon()}
-          Status da API
-        </Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Status da Conexão com a API</DialogTitle>
-          <DialogDescription>
-            Informações sobre a conectividade do frontend com o servidor backend.
-          </DialogDescription>
-        </DialogHeader>
-        <Alert variant={backendStatus === 'error' ? 'destructive' : 'default'}>
-          {getStatusIcon()}
-          <AlertTitle>Status do Backend</AlertTitle>
-          <AlertDescription>
-            <p>{backendMessage}</p>
-            <p className="text-xs text-muted-foreground mt-2">URL da API: {backendUrl}</p>
-          </AlertDescription>
-        </Alert>
-      </DialogContent>
-    </Dialog>
-  );
+    <Alert variant={status === 'success' ? 'default' : 'destructive'} className="w-fit px-4 py-2">
+      {status === 'success' ? (
+        <CircleCheck className="h-4 w-4 text-green-500" />
+      ) : (
+        <CircleX className="h-4 w-4 text-red-500" />
+      )}
+      <AlertTitle className="text-sm font-medium">Status da API</AlertTitle>
+      <AlertDescription className="text-xs">
+        {message}
+      </AlertDescription>
+    </Alert>
+  )
 }

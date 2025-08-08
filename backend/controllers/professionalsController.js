@@ -1,8 +1,8 @@
 const db = require('../database/database');
-const { v4: uuidv4 } = require('uuid');
 
-exports.getAllProfessionals = (req, res) => {
-  db.all("SELECT * FROM professionals ORDER BY name", (err, rows) => {
+// Obter todos os profissionais
+const getAllProfessionals = (req, res) => {
+  db.all('SELECT * FROM professionals', [], (err, rows) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
@@ -11,63 +11,67 @@ exports.getAllProfessionals = (req, res) => {
   });
 };
 
-exports.addProfessional = (req, res) => {
-  const { name, color } = req.body;
-  if (!name || !color) {
-    res.status(400).json({ error: "Nome e cor são obrigatórios." });
-    return;
+// Adicionar um novo profissional
+const addProfessional = (req, res) => {
+  const { id, name, color } = req.body;
+  
+  if (!id || !name || !color) {
+    return res.status(400).json({ error: 'ID, nome e cor são obrigatórios' });
   }
 
-  const id = uuidv4(); // Gerar um UUID para o ID
-  db.run(
-    `INSERT INTO professionals (id, name, color) VALUES (?, ?, ?)`,
-    [id, name, color],
-    function (err) {
+  db.run('INSERT INTO professionals (id, name, color) VALUES (?, ?, ?)', 
+    [id, name, color], 
+    function(err) {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
       }
-      res.status(201).json({ message: 'Profissional adicionado com sucesso', id: id });
+      res.json({ id, name, color });
     }
   );
 };
 
-exports.updateProfessional = (req, res) => {
+// Atualizar um profissional
+const updateProfessional = (req, res) => {
   const { id } = req.params;
   const { name, color } = req.body;
-  if (!name || !color) {
-    res.status(400).json({ error: "Nome e cor são obrigatórios." });
-    return;
-  }
 
-  db.run(
-    `UPDATE professionals SET name = ?, color = ? WHERE id = ?`,
+  db.run('UPDATE professionals SET name = ?, color = ? WHERE id = ?',
     [name, color, id],
-    function (err) {
+    function(err) {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
       }
       if (this.changes === 0) {
-        res.status(404).json({ message: "Profissional não encontrado." });
-      } else {
-        res.json({ message: 'Profissional atualizado com sucesso', id: id });
+        res.status(404).json({ error: 'Profissional não encontrado' });
+        return;
       }
+      res.json({ id, name, color });
     }
   );
 };
 
-exports.deleteProfessional = (req, res) => {
+// Deletar um profissional
+const deleteProfessional = (req, res) => {
   const { id } = req.params;
-  db.run(`DELETE FROM professionals WHERE id = ?`, id, function (err) {
+
+  db.run('DELETE FROM professionals WHERE id = ?', [id], function(err) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
     if (this.changes === 0) {
-      res.status(404).json({ message: "Profissional não encontrado." });
-    } else {
-      res.json({ message: 'Profissional removido com sucesso', id: id });
+      res.status(404).json({ error: 'Profissional não encontrado' });
+      return;
     }
+    res.json({ message: 'Profissional deletado com sucesso' });
   });
+};
+
+module.exports = {
+  getAllProfessionals,
+  addProfessional,
+  updateProfessional,
+  deleteProfessional
 };

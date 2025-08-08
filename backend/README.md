@@ -5,7 +5,7 @@ Este é o backend da aplicação de escala de sobreaviso, construído com Node.j
 ## Estrutura do Projeto
 
 \`\`\`
-backend/
+.
 ├── controllers/      # Lógica de negócio para as rotas
 ├── database/         # Configuração do banco de dados SQLite
 ├── routes/           # Definição das rotas da API
@@ -14,27 +14,36 @@ backend/
 └── package.json      # Dependências do backend
 \`\`\`
 
-## Como Rodar Localmente (sem Docker)
+## Tecnologias Utilizadas
 
-1.  **Navegue até a pasta do backend:**
+-   **Node.js:** Ambiente de execução JavaScript.
+-   **Express.js:** Framework web para Node.js.
+-   **SQLite:** Banco de dados leve e sem servidor.
+-   **`better-sqlite3`:** Driver SQLite síncrono e rápido para Node.js.
+-   **`cors`:** Middleware para habilitar Cross-Origin Resource Sharing.
+-   **`dotenv`:** Para carregar variáveis de ambiente de um arquivo `.env`.
+
+## Como Rodar Localmente
+
+1.  **Navegue até a pasta `backend`:**
     \`\`\`bash
     cd backend
     \`\`\`
 
 2.  **Instale as dependências:**
     \`\`\`bash
-    npm install --force
+    npm install
     \`\`\`
 
 3.  **Inicialize o banco de dados:**
-    Este script cria o arquivo `database.db` e as tabelas necessárias se elas não existirem.
+    Este script cria o arquivo `database.sqlite` e as tabelas necessárias se elas não existirem.
     \`\`\`bash
     npm run init-db
     \`\`\`
 
-4.  **Inicie o servidor de desenvolvimento:**
+4.  **Inicie o servidor:**
     \`\`\`bash
-    npm run dev
+    npm start
     \`\`\`
     O servidor estará rodando em `http://localhost:3001`.
 
@@ -42,70 +51,47 @@ backend/
 
 A API está disponível em `http://localhost:3001/api`.
 
-### Profissionais
+### Configurações (`/api/config`)
 
--   \`GET /api/professionals\`: Retorna todos os profissionais cadastrados.
--   \`POST /api/professionals\`: Adiciona um novo profissional.
-    \`\`\`json
-    {
-        "name": "Nome do Profissional",
-        "color": "#HEXCOLOR"
-    }
-    \`\`\`
--   \`PUT /api/professionals/:id\`: Atualiza um profissional existente.
-    \`\`\`json
-    {
-        "name": "Novo Nome",
-        "color": "#NEWHEXCOLOR"
-    }
-    \`\`\`
--   \`DELETE /api/professionals/:id\`: Remove um profissional.
+-   `GET /api/config`: Obtém as configurações atuais (feriados, etc.).
+-   `POST /api/config`: Atualiza as configurações.
 
-### Escala
+### Profissionais (`/api/professionals`)
 
--   \`GET /api/schedule/:year/:month\`: Retorna a escala para um mês e ano específicos.
--   \`POST /api/schedule\`: Adiciona ou atualiza uma entrada na escala.
-    \`\`\`json
-    {
-        "date": "YYYY-MM-DD",
-        "professionalId": 123
-    }
-    \`\`\`
-    (Se `professionalId` for `null`, remove a atribuição para a data.)
+-   `GET /api/professionals`: Lista todos os profissionais.
+-   `GET /api/professionals/:id`: Obtém um profissional específico.
+-   `POST /api/professionals`: Adiciona um novo profissional.
+-   `PUT /api/professionals/:id`: Atualiza um profissional existente.
+-   `DELETE /api/professionals/:id`: Remove um profissional.
 
-### Histórico
+### Escalas (`/api/schedule`)
 
--   \`GET /api/history\`: Retorna todas as entradas do histórico.
--   \`POST /api/history\`: Adiciona uma nova entrada ao histórico.
-    \`\`\`json
-    {
-        "date": "YYYY-MM-DD",
-        "description": "Descrição do evento"
-    }
-    \`\`\`
+-   `GET /api/schedule/:year/:month`: Obtém a escala para um mês e ano específicos.
+-   `POST /api/schedule`: Adiciona ou atualiza uma entrada na escala.
+-   `DELETE /api/schedule/:id`: Remove uma entrada da escala.
 
-### Configurações
+### Histórico (`/api/history`)
 
--   \`GET /api/config\`: Retorna as configurações atuais (ex: IP do backend).
--   \`POST /api/config\`: Atualiza as configurações.
-    \`\`\`json
-    {
-        "backendIp": "192.168.1.100"
-    }
-    \`\`\`
+-   `GET /api/history`: Lista todas as entradas do histórico.
+-   `GET /api/history/:year/:month`: Obtém o histórico para um mês e ano específicos.
+-   `POST /api/history`: Adiciona uma nova entrada ao histórico.
 
-## Banco de Dados (SQLite)
+## Variáveis de Ambiente
 
-O banco de dados é um arquivo SQLite (`database.db`) localizado na pasta `backend/database`. Ele é criado e inicializado pelo script `scripts/init-database.js`.
+O backend utiliza variáveis de ambiente, que podem ser definidas em um arquivo `.env` na raiz da pasta `backend`.
 
-## Dependências
+-   `PORT`: Porta em que o servidor Express será executado (padrão: `3001`).
+-   `DATABASE_PATH`: Caminho para o arquivo do banco de dados SQLite (padrão: `./database/database.sqlite`).
 
-As dependências estão listadas no `package.json` e incluem:
--   `express`: Framework web para Node.js.
--   `sqlite3` ou `better-sqlite3`: Driver para SQLite.
--   `cors`: Middleware para habilitar Cross-Origin Resource Sharing.
--   `nodemon` (dev): Para reiniciar o servidor automaticamente durante o desenvolvimento.
--   `dotenv` (dev): Para carregar variáveis de ambiente de um arquivo `.env`.
+Exemplo de `.env`:
+\`\`\`
+PORT=3001
+DATABASE_PATH=./database/database.sqlite
+\`\`\`
+
+## Docker
+
+Este backend é projetado para ser executado em um contêiner Docker. Consulte o `Dockerfile` na raiz da pasta `backend` e o `docker-compose.yml` na raiz do projeto para detalhes sobre a conteinerização.
 
 ## Contribuição
 

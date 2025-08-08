@@ -6,15 +6,14 @@ cd backend
 
 :: Instala as dependências (se ainda não estiverem instaladas)
 echo Instalando dependências do backend...
-npm install --force
+npm install
 
-:: Inicializa o banco de dados (cria o arquivo database.db e as tabelas se não existirem)
+:: Inicializa o banco de dados (cria o arquivo e tabelas se não existirem)
 echo Inicializando o banco de dados...
 npm run init-db
 
-:: Inicia o servidor backend em modo de desenvolvimento (com nodemon)
+:: Inicia o servidor backend
 echo Iniciando o servidor backend...
-npm run dev
+npm start
 
-:: Mantém a janela do prompt aberta após a execução
 pause

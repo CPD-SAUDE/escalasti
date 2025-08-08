@@ -1,26 +1,33 @@
 const db = require('../database/database');
 
-exports.getConfig = (req, res) => {
-  db.get("SELECT * FROM config WHERE id = 1", (err, row) => {
+// Obter configuração
+const getConfig = (req, res) => {
+  db.get('SELECT * FROM config WHERE id = 1', [], (err, row) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
-    res.json(row || { id: 1, backendIp: null }); // Retorna um objeto padrão se não houver configuração
+    res.json(row || { id: 1, backendIp: null });
   });
 };
 
-exports.updateConfig = (req, res) => {
+// Atualizar configuração
+const updateConfig = (req, res) => {
   const { backendIp } = req.body;
-  db.run(
-    `INSERT OR REPLACE INTO config (id, backendIp) VALUES (1, ?)`,
+
+  db.run('UPDATE config SET backendIp = ? WHERE id = 1',
     [backendIp],
-    function (err) {
+    function(err) {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
       }
-      res.json({ message: 'Configuração atualizada com sucesso', id: this.lastID });
+      res.json({ id: 1, backendIp });
     }
   );
+};
+
+module.exports = {
+  getConfig,
+  updateConfig
 };

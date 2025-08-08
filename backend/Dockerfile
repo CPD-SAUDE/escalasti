@@ -8,14 +8,17 @@ WORKDIR /app
 # Isso permite que o Docker use o cache de camadas para as dependências
 COPY package*.json ./
 
-# Instala as dependências do Node.js, usando --force
+# Instala as dependências do Node.js, usando --force para resolver conflitos
 RUN npm install --force
 
 # Copia o restante do código da aplicação para o contêiner
 COPY . .
 
+# Cria o diretório database se não existir
+RUN mkdir -p database
+
 # Expõe a porta em que o backend será executado
 EXPOSE 3001
 
-# Comando para iniciar a aplicação
-CMD ["npm", "start"]
+# Comando para inicializar o banco de dados e depois iniciar o servidor
+CMD ["sh", "-c", "npm run init-db && npm start"]
