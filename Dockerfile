@@ -1,42 +1,60 @@
-# Estágio 1: Construção da aplicação Next.js
-FROM node:20-alpine AS builder
+# Use a imagem oficial do Node.js como base
+FROM node:18-alpine AS base
 
+# Define o diretório de trabalho dentro do contêiner
 WORKDIR /app
 
-# Copia os arquivos package.json e package-lock.json
+# Copia os arquivos de package.json e package-lock.json
 COPY package*.json ./
 
-# Instala as dependências do Node.js, usando --force conforme solicitado
+# Instala as dependências do projeto
+# Usa --force conforme solicitado pelo usuário
 RUN npm install --force
 
 # Copia o restante do código da aplicação
 COPY . .
 
-# Define a variável de ambiente NEXT_PUBLIC_API_URL para o processo de build
-# Isso garante que o frontend saiba onde encontrar o backend durante a construção
-ENV NEXT_PUBLIC_API_URL=http://backend:3001/api
+# Define a variável de ambiente para a URL da API do backend
+# Esta variável será substituída pelo docker-compose.yml em produção
+# Mas é útil para builds independentes ou para referência
+ENV NEXT_PUBLIC_API_URL=http://localhost:3001/api
 
-# Constrói a aplicação Next.js para produção
+# Expõe a porta em que o Next.js será executado
+EXPOSE 3000
+
+# Comando para iniciar o servidor de desenvolvimento do Next.js
+# Para produção, você usaria `npm run build` e `npm start`
+CMD ["npm", "run", "dev"]
+
+# --- Estágio de Build para Produção (Opcional, mas boa prática) ---
+FROM base AS builder
+
+# Instala as dependências de produção e constrói a aplicação Next.js
 RUN npm run build
 
-# Estágio 2: Execução da aplicação Next.js
-FROM node:20-alpine AS runner
+# --- Estágio Final para Produção ---
+FROM node:18-alpine AS runner
 
 WORKDIR /app
 
-# Copia os arquivos de build do estágio anterior
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/node_modules ./node_modules
+# Define o usuário 'nextjs' para segurança
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+
+# Copia os arquivos de produção do estágio 'builder'
 COPY --from=builder /app/public ./public
-COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
 
-# Define as variáveis de ambiente para o tempo de execução
-# O frontend se conectará ao serviço 'backend' dentro da rede Docker
+# Define a variável de ambiente para a URL da API do backend
+# Esta variável será substituída pelo docker-compose.yml em produção
 ENV NEXT_PUBLIC_API_URL=http://backend:3001/api
-ENV PORT=3000
 
-# Expõe a porta em que o frontend será executado
+# Define o usuário para executar a aplicação
+USER nextjs
+
+# Expõe a porta em que o Next.js será executado
 EXPOSE 3000
 
-# Comando para iniciar a aplicação em modo de produção
-CMD ["npm", "start"]
+# Comando para iniciar a aplicação Next.js em produção
+CMD ["node", "server.js"]

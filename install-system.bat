@@ -1,64 +1,86 @@
 @echo off
-echo Iniciando a instalação completa do sistema...
+setlocal
 
-:: Define a variável de ambiente para o frontend
-:: No ambiente Docker, esta variável será definida no Dockerfile
-set NEXT_PUBLIC_API_URL=http://localhost:3001/api
+:: Este script automatiza a instalação completa do sistema de escala de sobreaviso.
+:: Ele remove instalações anteriores, clona o repositório e executa os scripts de inicialização.
 
-:: 1. Navega para o diretório do backend e instala dependências
 echo.
-echo --- Instalando dependências do backend ---
-cd backend
-npm install
-if %errorlevel% neq 0 (
-    echo Erro ao instalar dependências do backend.
-    pause
-    exit /b %errorlevel%
+echo ==================================================
+echo Instalador do Sistema de Escala de Sobreaviso
+echo ==================================================
+echo.
+
+:: 1. Remover instalações anteriores (opcional, mas recomendado para limpeza)
+echo 1. Removendo instalacoes anteriores (se existirem)...
+if exist "escalasti" (
+    rmdir /s /q "escalasti"
+    echo Pasta 'escalasti' removida.
+) else (
+    echo Pasta 'escalasti' nao encontrada. Pulando remocao.
 )
-echo Dependências do backend instaladas.
-
-:: 2. Inicializa o banco de dados do backend
 echo.
-echo --- Inicializando o banco de dados do backend ---
-npm run init-db
+
+:: 2. Clonar o repositório
+echo 2. Clonando o repositorio 'escalasti' do GitHub...
+git clone https://github.com/CPD-SAUDE/escalasti.git
 if %errorlevel% neq 0 (
-    echo Erro ao inicializar o banco de dados do backend.
+    echo ERRO: Falha ao clonar o repositorio. Verifique sua conexao com a internet ou o URL.
     pause
-    exit /b %errorlevel%
+    goto :eof
 )
-echo Banco de dados do backend inicializado.
-
-:: 3. Volta para o diretório raiz e instala dependências do frontend
+echo Repositorio clonado com sucesso.
 echo.
-echo --- Instalando dependências do frontend ---
-cd ..
-npm install --force
+
+:: 3. Navegar para o diretório do projeto
+cd escalasti
 if %errorlevel% neq 0 (
-    echo Erro ao instalar dependências do frontend.
+    echo ERRO: Nao foi possivel entrar no diretorio 'escalasti'.
     pause
-    exit /b %errorlevel%
+    goto :eof
 )
-echo Dependências do frontend instaladas.
-
-:: 4. Constrói o frontend para produção
+echo Entrou no diretorio 'escalasti'.
 echo.
-echo --- Construindo o frontend ---
-npm run build
+
+:: 4. Instalar dependencias do backend e inicializar DB
+echo 4. Instalando dependencias do backend e inicializando o banco de dados...
+call backend\start-backend.bat
 if %errorlevel% neq 0 (
-    echo Erro ao construir o frontend.
+    echo ERRO: Falha na instalacao ou inicializacao do backend.
     pause
-    exit /b %errorlevel%
+    goto :eof
 )
-echo Frontend construído.
-
-echo.
-echo --- Instalação completa! ---
-echo Agora você pode iniciar o backend e o frontend separadamente ou usar o Docker Compose.
-echo.
-echo Para iniciar o backend: cd backend && npm start
-echo Para iniciar o frontend: npm start
-echo.
-echo Para usar Docker Compose: docker compose up --build -d
+echo Backend configurado e iniciado.
 echo.
 
+:: 5. Instalar dependencias do frontend e construir
+echo 5. Instalando dependencias do frontend e construindo...
+call build-frontend.bat
+if %errorlevel% neq 0 (
+    echo ERRO: Falha na instalacao ou construcao do frontend.
+    pause
+    goto :eof
+)
+echo Frontend construido com sucesso.
+echo.
+
+:: 6. Configurar IP de rede para backend
+echo 6. Configurando IP de rede para backend...
+call configure-network.bat
+if %errorlevel% neq 0 (
+    echo ERRO: Falha na configuracao do IP de rede.
+    pause
+    goto :eof
+)
+echo IP de rede configurado com sucesso.
+echo.
+
+echo ==================================================
+echo Instalacao Concluida!
+echo O sistema deve estar acessivel em http://localhost:3000
+echo ==================================================
+echo.
+
+echo Para iniciar o sistema, execute start-system.bat
 pause
+
+endlocal

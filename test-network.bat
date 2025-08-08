@@ -1,29 +1,30 @@
 @echo off
-echo Testando a conectividade de rede...
+setlocal
 
-:: Este script é um exemplo simples para verificar a conectividade.
-:: Ele tenta pingar um site externo e o localhost.
-
-echo.
-echo Testando ping para google.com...
-ping -n 1 google.com > NUL
-if %errorlevel% equ 0 (
-    echo Conectividade externa OK.
-) else (
-    echo Erro: Nao foi possivel pingar google.com. Verifique sua conexao com a internet.
-)
+:: Este script testa a conectividade com o backend do sistema de escala de sobreaviso.
 
 echo.
-echo Testando ping para localhost (127.0.0.1)...
-ping -n 1 127.0.0.1 > NUL
-if %errorlevel% equ 0 (
-    echo Conectividade local OK.
-) else (
-    echo Erro: Nao foi possivel pingar localhost.
-)
+echo ==================================================
+echo Testing network connection to backend...
+echo ==================================================
+echo.
+
+:: Define a URL do endpoint de status do backend
+set BACKEND_STATUS_URL=http://localhost:3001/api/status
+
+echo Tentando conectar ao backend em %BACKEND_STATUS_URL%...
+
+:: Usa curl para fazer uma requisição GET ao endpoint de status
+:: Se curl nao estiver disponivel, voce pode precisar instala-lo ou usar outra ferramenta.
+curl http://localhost:3001/api/status
+echo.
+echo Network test complete.
 
 echo.
-echo Se estiver usando Docker, verifique tambem a rede interna do Docker.
+echo ==================================================
+echo Teste Concluido
+echo ==================================================
 echo.
 
 pause
+endlocal

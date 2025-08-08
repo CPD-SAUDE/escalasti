@@ -6,17 +6,17 @@ export interface Professional {
 
 export interface ScheduleEntry {
   id: number;
-  date: string; // Formato 'YYYY-MM-DD'
-  professionalId: number | null; // Pode ser null se o dia estiver vazio
+  date: string; // YYYY-MM-DD
+  professionalId: number | null; // null if no professional is assigned
 }
 
 export interface HistoryEntry {
   id: number;
-  date: string; // Formato 'YYYY-MM-DD'
+  date: string; // YYYY-MM-DD
   description: string;
 }
 
 export interface Config {
   id: number;
-  holidays: string[]; // Array de datas em formato 'YYYY-MM-DD'
+  networkIp: string;
 }

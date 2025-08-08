@@ -1,168 +1,181 @@
 'use client'
 
-import { useState } from 'react'
-import {
-  eachDayOfInterval,
-  endOfMonth,
-  format,
-  getDay,
-  isSameDay,
-  startOfMonth,
-} from 'date-fns'
-import { ptBR } from 'date-fns/locale'
-import { Professional, ScheduleData } from '@/lib/types'
+import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
+import { addOrUpdateScheduleEntry, getAllProfessionals, getScheduleByMonth } from '@/lib/api'
+import { Professional, ScheduleEntry } from '@/lib/types'
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isWeekend, isToday } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command'
+import { Check, PlusCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { Alert, AlertDescription, AlertTitle } from './ui/alert'
 
 interface ScheduleCalendarProps {
-  year: number
-  month: number
-  schedule: ScheduleData
-  professionals: Professional[]
-  updateSchedule: (
-    year: number,
-    month: number,
-    data: ScheduleData,
-  ) => Promise<void>
+  selectedMonth: Date
 }
 
-export default function ScheduleCalendar({
-  year,
-  month,
-  schedule,
-  professionals,
-  updateSchedule,
-}: ScheduleCalendarProps) {
-  const firstDayOfMonth = startOfMonth(new Date(year, month - 1))
-  const lastDayOfMonth = endOfMonth(new Date(year, month - 1))
-  const daysInMonth = eachDayOfInterval({
-    start: firstDayOfMonth,
-    end: lastDayOfMonth,
-  })
+export function ScheduleCalendar({ selectedMonth }: ScheduleCalendarProps) {
+  const [schedule, setSchedule] = useState<ScheduleEntry[]>([])
+  const [professionals, setProfessionals] = useState<Professional[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  const startingDayIndex = getDay(firstDayOfMonth) // 0 for Sunday, 1 for Monday...
+  const year = selectedMonth.getFullYear()
+  const month = selectedMonth.getMonth() + 1 // Mês é 1-indexed para a API
 
-  const [currentSchedule, setCurrentSchedule] =
-    useState<ScheduleData>(schedule)
-  const [isSaving, setIsSaving] = useState(false)
-  const [saveError, setSaveError] = useState<string | null>(null)
-  const [saveSuccess, setSaveSuccess] = useState<string | null>(null)
-
-  // Update internal state when external schedule prop changes
-  // This is important if the schedule is fetched asynchronously
-  useState(() => {
-    setCurrentSchedule(schedule)
-  }, [schedule])
-
-  const handleProfessionalChange = (day: number, professionalId: string) => {
-    setCurrentSchedule((prev) => ({
-      ...prev,
-      [day]: professionalId === 'none' ? null : parseInt(professionalId),
-    }))
-    setSaveSuccess(null) // Clear success message on change
-  }
-
-  const handleSaveSchedule = async () => {
-    setIsSaving(true)
-    setSaveError(null)
-    setSaveSuccess(null)
+  const fetchScheduleAndProfessionals = async () => {
+    setIsLoading(true)
+    setError(null)
     try {
-      await updateSchedule(year, month, currentSchedule)
-      setSaveSuccess('Escala salva com sucesso!')
-    } catch (err: any) {
-      setSaveError(err.message || 'Erro ao salvar a escala.')
+      const [scheduleData, professionalsData] = await Promise.all([
+        getScheduleByMonth(year, month),
+        getAllProfessionals(),
+      ])
+      setSchedule(scheduleData)
+      setProfessionals(professionalsData)
+    } catch (err) {
+      setError('Erro ao carregar dados da escala ou profissionais.')
+      console.error(err)
     } finally {
-      setIsSaving(false)
+      setIsLoading(false)
     }
   }
 
-  const getProfessionalForDay = (day: number) => {
-    const professionalId = currentSchedule[day]
-    return professionals.find((p) => p.id === professionalId)
+  useEffect(() => {
+    fetchScheduleAndProfessionals()
+  }, [selectedMonth]) // Recarrega quando o mês selecionado muda
+
+  const daysInMonth = eachDayOfInterval({
+    start: startOfMonth(selectedMonth),
+    end: endOfMonth(selectedMonth),
+  })
+
+  const getProfessionalForDay = (date: Date) => {
+    const formattedDate = format(date, 'yyyy-MM-dd')
+    const entry = schedule.find((s) => s.date === formattedDate)
+    return professionals.find((p) => p.id === entry?.professionalId)
   }
 
-  const weekDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
+  const handleAssignProfessional = async (date: Date, professionalId: number | null) => {
+    setIsLoading(true)
+    setError(null)
+    try {
+      const formattedDate = format(date, 'yyyy-MM-dd')
+      await addOrUpdateScheduleEntry({ date: formattedDate, professionalId })
+      await fetchScheduleAndProfessionals() // Recarrega os dados após a atualização
+    } catch (err) {
+      setError('Erro ao atribuir profissional.')
+      console.error(err)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Calcula o offset para o primeiro dia do mês (para alinhar com a semana)
+  const firstDayOfMonth = startOfMonth(selectedMonth)
+  const startingDayIndex = (firstDayOfMonth.getDay() + 6) % 7 // Ajusta para segunda-feira como primeiro dia (0=Seg, 6=Dom)
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-2xl font-bold">Escala Mensal</CardTitle>
-        <Button onClick={handleSaveSchedule} disabled={isSaving}>
-          {isSaving ? 'Salvando...' : 'Salvar Escala'}
-        </Button>
+    <Card className="flex-1">
+      <CardHeader>
+        <CardTitle>Escala de Sobreaviso</CardTitle>
       </CardHeader>
       <CardContent>
-        {saveError && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertTitle>Erro ao Salvar</AlertTitle>
-            <AlertDescription>{saveError}</AlertDescription>
-          </Alert>
-        )}
-        {saveSuccess && (
-          <Alert className="mb-4 border-green-500 text-green-700 dark:border-green-400 dark:text-green-300">
-            <AlertTitle>Sucesso</AlertTitle>
-            <AlertDescription>{saveSuccess}</AlertDescription>
-          </Alert>
-        )}
-        <div className="grid grid-cols-7 gap-2 text-center font-semibold">
-          {weekDays.map((day) => (
-            <div key={day}>{day}</div>
-          ))}
-        </div>
-        <div className="mt-2 grid grid-cols-7 gap-2">
-          {Array.from({ length: startingDayIndex }).map((_, i) => (
-            <div key={`empty-${i}`} className="h-24 rounded-md bg-gray-100 dark:bg-gray-800" />
-          ))}
-          {daysInMonth.map((day, index) => {
-            const dayNumber = parseInt(format(day, 'd'))
-            const professional = getProfessionalForDay(dayNumber)
-
-            return (
-              <div
-                key={index}
-                className={cn(
-                  'flex flex-col rounded-md border p-2 shadow-sm',
-                  isSameDay(day, new Date()) && 'border-blue-500 ring-2 ring-blue-500',
-                )}
-              >
-                <div className="text-lg font-bold">{dayNumber}</div>
-                <Select
-                  value={professional ? String(professional.id) : 'none'}
-                  onValueChange={(value) =>
-                    handleProfessionalChange(dayNumber, value)
-                  }
-                >
-                  <SelectTrigger
-                    className="mt-1 h-auto min-h-[36px] text-xs"
-                    style={{
-                      backgroundColor: professional?.color || 'transparent',
-                      color: professional ? '#FFF' : 'inherit',
-                    }}
-                  >
-                    <SelectValue placeholder="Selecionar" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Nenhum</SelectItem>
-                    {professionals.map((p) => (
-                      <SelectItem key={p.id} value={String(p.id)}>
-                        {p.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+        {isLoading && <p>Carregando escala...</p>}
+        {error && <p className="text-red-500">{error}</p>}
+        {!isLoading && !error && (
+          <div className="grid grid-cols-7 gap-2 text-center font-semibold text-gray-700 dark:text-gray-300">
+            {['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'].map((day) => (
+              <div key={day} className="py-2">
+                {day}
               </div>
-            )
-          })}
-        </div>
+            ))}
+            {Array.from({ length: startingDayIndex }).map((_, i) => (
+              <div key={`empty-${i}`} className="py-4" />
+            ))}
+            {daysInMonth.map((date) => {
+              const professional = getProfessionalForDay(date)
+              const isWeekendDay = isWeekend(date)
+              const isCurrentDay = isToday(date)
+
+              return (
+                <Popover key={date.toISOString()}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        'flex flex-col h-24 w-full p-1 text-center relative',
+                        isWeekendDay && 'bg-gray-50 dark:bg-gray-800 text-gray-500',
+                        isCurrentDay && 'border-2 border-primary ring-2 ring-primary/50',
+                        professional && 'border-2'
+                      )}
+                      style={professional ? { borderColor: professional.color, borderWidth: '2px' } : {}}
+                    >
+                      <span className="text-xs font-bold absolute top-1 right-1">
+                        {format(date, 'd')}
+                      </span>
+                      <div className="flex-1 flex items-center justify-center text-sm font-medium">
+                        {professional ? (
+                          <span
+                            className="text-center px-1 py-0.5 rounded-md text-white text-xs"
+                            style={{ backgroundColor: professional.color }}
+                          >
+                            {professional.name}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">Vazio</span>
+                        )}
+                      </div>
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[200px] p-0">
+                    <Command>
+                      <CommandInput placeholder="Buscar profissional..." />
+                      <CommandEmpty>Nenhum profissional encontrado.</CommandEmpty>
+                      <CommandGroup>
+                        {professionals.map((p) => (
+                          <CommandItem
+                            key={p.id}
+                            onSelect={() => handleAssignProfessional(date, p.id)}
+                            className="flex items-center cursor-pointer"
+                          >
+                            <div
+                              className="w-3 h-3 rounded-full mr-2 border"
+                              style={{ backgroundColor: p.color }}
+                            />
+                            {p.name}
+                            <Check
+                              className={cn(
+                                'ml-auto h-4 w-4',
+                                professional?.id === p.id ? 'opacity-100' : 'opacity-0'
+                              )}
+                            />
+                          </CommandItem>
+                        ))}
+                        {professional && ( // Opção para remover profissional se já houver um
+                          <CommandItem
+                            onSelect={() => handleAssignProfessional(date, null)}
+                            className="flex items-center cursor-pointer text-red-500"
+                          >
+                            <XCircle className="h-4 w-4 mr-2" />
+                            Remover Profissional
+                          </CommandItem>
+                        )}
+                        {professionals.length === 0 && (
+                          <CommandItem disabled>
+                            Nenhum profissional cadastrado. Adicione um na aba "Gerenciar Profissionais".
+                          </CommandItem>
+                        )}
+                      </CommandGroup>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              )
+            })}
+          </div>
+        )}
       </CardContent>
     </Card>
   )

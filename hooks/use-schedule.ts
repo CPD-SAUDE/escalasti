@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getScheduleByMonth, addOrUpdateScheduleEntry, deleteScheduleEntry } from '@/lib/api';
+import { getScheduleByMonth as fetchScheduleByMonthApi, addOrUpdateScheduleEntry as addOrUpdateScheduleEntryApi } from '@/lib/api';
 import { ScheduleEntry } from '@/lib/types';
 
 export function useSchedule(year: number, month: number) {
@@ -11,51 +11,36 @@ export function useSchedule(year: number, month: number) {
     setIsLoading(true);
     setError(null);
     try {
-      const data = await getScheduleByMonth(year, month);
+      const data = await fetchScheduleByMonthApi(year, month);
       setSchedule(data);
     } catch (err) {
-      setError('Erro ao carregar escala.');
-      console.error(err);
+      setError('Failed to fetch schedule.');
+      console.error('Error fetching schedule:', err);
     } finally {
       setIsLoading(false);
     }
   }, [year, month]);
 
+  const addOrUpdateScheduleEntry = useCallback(async (entry: Omit<ScheduleEntry, 'id'>) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const updatedEntry = await addOrUpdateScheduleEntryApi(entry);
+      // Re-fetch the entire schedule to ensure consistency after update/add
+      await fetchSchedule();
+      return updatedEntry;
+    } catch (err) {
+      setError('Failed to add or update schedule entry.');
+      console.error('Error adding/updating schedule entry:', err);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [fetchSchedule]);
+
   useEffect(() => {
     fetchSchedule();
   }, [fetchSchedule]);
 
-  const addOrUpdateEntry = useCallback(async (entry: Omit<ScheduleEntry, 'id'>) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      await addOrUpdateScheduleEntry(entry);
-      await fetchSchedule(); // Recarrega a escala após adicionar/atualizar
-      return true;
-    } catch (err) {
-      setError('Erro ao adicionar ou atualizar entrada da escala.');
-      console.error(err);
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [fetchSchedule]);
-
-  const deleteEntry = useCallback(async (id: number) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      await deleteScheduleEntry(id);
-      await fetchSchedule(); // Recarrega a escala após deletar
-      return true;
-    } catch (err) {
-      setError('Erro ao remover entrada da escala.');
-      console.error(err);
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [fetchSchedule]);
-
-  return { schedule, isLoading, error, addOrUpdateEntry, deleteEntry, refetchSchedule: fetchSchedule };
+  return { schedule, isLoading, error, fetchSchedule, addOrUpdateScheduleEntry };
 }

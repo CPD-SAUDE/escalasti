@@ -1,29 +1,23 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-    output: 'standalone', // Necessário para o Dockerfile otimizado
-    eslint: {
-        ignoreDuringBuilds: true,
-    },
-    typescript: {
-        ignoreBuildErrors: true,
-    },
-    images: {
-        remotePatterns: [
-            {
-                protocol: 'https',
-                hostname: 'hebbkx1anhila5yf.public.blob.vercel-storage.com',
-                port: '',
-                pathname: '/git-blob/**',
-            },
-            {
-                protocol: 'https',
-                hostname: 'blob.v0.dev',
-                port: '',
-                pathname: '/**',
-            },
-        ],
-        unoptimized: true,
-    },
+  output: 'standalone', // Necessário para Docker
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'avatars.githubusercontent.com',
+        port: '',
+        pathname: '**',
+      },
+    ],
+    unoptimized: true,
+  },
 };
 
 export default nextConfig;

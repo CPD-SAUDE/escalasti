@@ -1,18 +1,37 @@
 @echo off
-echo Iniciando o sistema (backend e frontend) localmente...
+setlocal
+
+:: Este script inicia o sistema de escala de sobreaviso.
+:: Ele inicia o backend e o frontend.
+
+echo.
+echo ==================================================
+echo Iniciando o Sistema de Escala de Sobreaviso
+echo ==================================================
+echo.
 
 :: Define a variável de ambiente para o frontend
 set NEXT_PUBLIC_API_URL=http://localhost:3001/api
 
-:: Inicia o backend em uma nova janela do terminal
-echo Iniciando o backend em uma nova janela...
-start cmd /k "cd backend && npm start"
+:: Iniciar o backend em uma nova janela
+echo Iniciando o backend...
+start cmd /k "call backend\start-backend.bat"
+echo.
 
-:: Aguarda um pouco para o backend iniciar
-timeout /t 5 /nobreak > NUL
+:: Aguardar um pouco para o backend iniciar
+timeout /t 5 /nobreak >nul
+echo.
 
-:: Inicia o frontend na janela atual
+:: Iniciar o frontend em uma nova janela
 echo Iniciando o frontend...
-npm run dev
+start cmd /k "call start-frontend.bat"
+echo.
+
+echo ==================================================
+echo Sistema Iniciado!
+echo O frontend deve estar acessivel em http://localhost:3000
+echo ==================================================
+echo.
 
 pause
+endlocal

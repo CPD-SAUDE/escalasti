@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getConfig, updateConfig } from '@/lib/api';
+import { getConfig as fetchConfigApi, updateConfig as updateConfigApi } from '@/lib/api';
 import { Config } from '@/lib/types';
 
 export function useConfig() {
@@ -11,11 +11,27 @@ export function useConfig() {
     setIsLoading(true);
     setError(null);
     try {
-      const data = await getConfig();
+      const data = await fetchConfigApi();
       setConfig(data);
     } catch (err) {
-      setError('Erro ao carregar configurações.');
-      console.error(err);
+      setError('Failed to fetch configuration.');
+      console.error('Error fetching config:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const updateConfig = useCallback(async (newConfig: Partial<Config>) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const updatedData = await updateConfigApi(newConfig);
+      setConfig(updatedData);
+      return updatedData;
+    } catch (err) {
+      setError('Failed to update configuration.');
+      console.error('Error updating config:', err);
+      throw err; // Re-throw to allow caller to handle
     } finally {
       setIsLoading(false);
     }
@@ -25,21 +41,5 @@ export function useConfig() {
     fetchConfig();
   }, [fetchConfig]);
 
-  const saveConfig = useCallback(async (newConfig: Config) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      await updateConfig(newConfig);
-      setConfig(newConfig); // Atualiza o estado local após sucesso
-      return true;
-    } catch (err) {
-      setError('Erro ao salvar configurações.');
-      console.error(err);
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  return { config, isLoading, error, saveConfig, refetchConfig: fetchConfig };
+  return { config, isLoading, error, fetchConfig, updateConfig };
 }

@@ -6,17 +6,17 @@ import { format, addMonths, subMonths } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
 interface MonthSelectorProps {
-  currentMonth: Date
-  onMonthChange: (newMonth: Date) => void
+  selectedMonth: Date
+  onMonthChange: (month: Date) => void
 }
 
-export function MonthSelector({ currentMonth, onMonthChange }: MonthSelectorProps) {
+export function MonthSelector({ selectedMonth, onMonthChange }: MonthSelectorProps) {
   const handlePreviousMonth = () => {
-    onMonthChange(subMonths(currentMonth, 1))
+    onMonthChange(subMonths(selectedMonth, 1))
   }
 
   const handleNextMonth = () => {
-    onMonthChange(addMonths(currentMonth, 1))
+    onMonthChange(addMonths(selectedMonth, 1))
   }
 
   return (
@@ -24,8 +24,8 @@ export function MonthSelector({ currentMonth, onMonthChange }: MonthSelectorProp
       <Button variant="outline" size="icon" onClick={handlePreviousMonth}>
         <ChevronLeft className="h-4 w-4" />
       </Button>
-      <h2 className="text-lg font-semibold">
-        {format(currentMonth, 'MMMM yyyy', { locale: ptBR })}
+      <h2 className="text-xl font-semibold">
+        {format(selectedMonth, 'MMMM yyyy', { locale: ptBR })}
       </h2>
       <Button variant="outline" size="icon" onClick={handleNextMonth}>
         <ChevronRight className="h-4 w-4" />

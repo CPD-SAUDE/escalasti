@@ -1,4 +1,6 @@
 @echo off
+setlocal
+
 echo Configurando a rede para o sistema...
 
 :: Este script é um exemplo e pode precisar de ajustes dependendo do seu ambiente.
@@ -22,4 +24,29 @@ echo você precisará definir a variável de ambiente NEXT_PUBLIC_API_URL no fro
 echo set NEXT_PUBLIC_API_URL=http://localhost:3001/api
 echo.
 
+echo.
+echo ==================================================
+echo Configurando o IP da Rede para o Backend
+echo ==================================================
+echo.
+
+:: Tenta obter o IP da rede local usando o script Node.js
+echo Getting network IP...
+node backend\scripts\get-network-ip.js > network_ip.txt
+set /p NETWORK_IP=<network_ip.txt
+del network_ip.txt
+echo Network IP: %NETWORK_IP%
+
+echo Updating backend config with network IP...
+curl -X POST -H "Content-Type: application/json" -d "{\"networkIp\": \"%NETWORK_IP%\"}" http://localhost:3001/api/config
+echo.
+echo Network configuration complete.
+
+echo.
+echo ==================================================
+echo Configuracao Concluida
+echo ==================================================
+echo.
+
 pause
+endlocal

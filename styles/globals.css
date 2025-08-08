@@ -91,5 +91,5 @@
 }
 
 /*
-  Global styles are handled by app/globals.css and Tailwind CSS.
+  Global styles are managed in `app/globals.css` for Next.js App Router.
 */

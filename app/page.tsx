@@ -299,18 +299,39 @@ export default function Home() {
               Visualizar Impressão
             </Button>
           </div>
-          <ScheduleCalendar
-            year={selectedMonth.getFullYear()}
-            month={selectedMonth.getMonth() + 1}
-            professionals={displayedProfessionals}
-            scheduleEntries={displayedScheduleEntries}
-            onUpdateEntry={handleUpdateScheduleEntry}
-            onDeleteEntry={handleDeleteScheduleEntry}
-          />
-          <ScheduleSummary
-            professionals={displayedProfessionals}
-            hoursSummary={professionalHoursSummary}
-          />
+          <Tabs defaultValue="schedule" className="w-full">
+            <TabsList className="grid w-full grid-cols-3 md:w-auto">
+              <TabsTrigger value="schedule">Escala</TabsTrigger>
+              <TabsTrigger value="professionals">Profissionais</TabsTrigger>
+              <TabsTrigger value="summary">Resumo</TabsTrigger>
+            </TabsList>
+            <TabsContent value="schedule" className="mt-4">
+              <ScheduleCalendar
+                year={selectedMonth.getFullYear()}
+                month={selectedMonth.getMonth() + 1}
+                professionals={displayedProfessionals}
+                scheduleEntries={displayedScheduleEntries}
+                onUpdateEntry={handleUpdateScheduleEntry}
+                onDeleteEntry={handleDeleteScheduleEntry}
+              />
+            </TabsContent>
+            <TabsContent value="professionals" className="mt-4">
+              <ProfessionalManagement
+                professionals={displayedProfessionals}
+                addProfessional={addProfessional}
+                updateProfessional={updateProfessional}
+                deleteProfessional={deleteProfessional}
+                activeProfessionalIds={activeProfessionalIds}
+                onToggleProfessionalActive={handleToggleProfessionalActive}
+              />
+            </TabsContent>
+            <TabsContent value="summary" className="mt-4">
+              <ScheduleSummary
+                professionals={displayedProfessionals}
+                hoursSummary={professionalHoursSummary}
+              />
+            </TabsContent>
+          </Tabs>
         </div>
         <div className="lg:col-span-1 xl:col-span-1 flex flex-col gap-6">
           <div className="flex space-x-2">
@@ -370,14 +391,6 @@ export default function Home() {
               )}
             </Button>
           </div>
-          <ProfessionalManagement
-            professionals={displayedProfessionals}
-            addProfessional={addProfessional}
-            updateProfessional={updateProfessional}
-            deleteProfessional={deleteProfessional}
-            activeProfessionalIds={activeProfessionalIds}
-            onToggleProfessionalActive={handleToggleProfessionalActive}
-          />
         </div>
       </main>
 

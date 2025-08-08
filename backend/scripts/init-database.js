@@ -1,61 +1,26 @@
-const db = require('../database/database'); // Isso já chama a função initDb()
-console.log('Script de inicialização do banco de dados executado.');
+const db = require('../database/database');
 
-db.serialize(() => {
-  // Tabela de Profissionais
-  db.run(`
-    CREATE TABLE IF NOT EXISTS professionals (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL UNIQUE,
-      color TEXT NOT NULL
-    )
-  `)
+// Este script apenas garante que as tabelas existam.
+// O arquivo database.js já contém a lógica de criação de tabelas.
+// Este script é chamado via `npm run init-db` para garantir que o DB seja inicializado.
 
-  // Tabela de Escalas
-  db.run(`
-    CREATE TABLE IF NOT EXISTS schedule (
-      year INTEGER NOT NULL,
-      month INTEGER NOT NULL,
-      data TEXT NOT NULL,
-      PRIMARY KEY (year, month)
-    )
-  `)
+console.log('Verificando e inicializando o banco de dados...');
 
-  // Tabela de Histórico
-  db.run(`
-    CREATE TABLE IF NOT EXISTS history (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      action TEXT NOT NULL,
-      details TEXT,
-      timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-    )
-  `)
+// Você pode adicionar aqui lógica para popular o banco de dados com dados iniciais, se necessário.
+// Exemplo:
+// db.run(`INSERT OR IGNORE INTO professionals (name, color) VALUES ('Profissional Padrão', '#000000')`, (err) => {
+//   if (err) {
+//     console.error('Erro ao inserir profissional padrão:', err.message);
+//   } else {
+//     console.log('Profissional padrão garantido.');
+//   }
+// });
 
-  // Tabela de Configurações
-  db.run(`
-    CREATE TABLE IF NOT EXISTS config (
-      id INTEGER PRIMARY KEY,
-      api_url TEXT
-    )
-  `)
-
-  // Inserir configuração inicial se não existir
-  db.run(
-    `INSERT OR IGNORE INTO config (id, api_url) VALUES (1, 'http://localhost:3001/api')`,
-    (err) => {
-      if (err) {
-        console.error('Error inserting initial config:', err.message)
-      } else {
-        console.log('Database initialized or already exists.')
-      }
-    },
-  )
-})
-
+// Fechar o banco de dados após a inicialização (importante para scripts de linha de comando)
 db.close((err) => {
   if (err) {
-    console.error('Error closing database:', err.message)
+    console.error('Erro ao fechar o banco de dados:', err.message);
   } else {
-    console.log('Database connection closed.')
+    console.log('Banco de dados inicializado e conexão fechada.');
   }
-})
+});
