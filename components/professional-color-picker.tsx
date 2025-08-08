@@ -1,31 +1,31 @@
 'use client'
 
+import { useState } from 'react'
 import { HexColorPicker } from 'react-colorful'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Button } from '@/components/ui/button'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 
 interface ProfessionalColorPickerProps {
-  color: string
-  onChange: (color: string) => void
+  color: string;
+  onChange: (color: string) => void;
 }
 
-export default function ProfessionalColorPicker({ color, onChange }: ProfessionalColorPickerProps) {
+export function ProfessionalColorPicker({ color, onChange }: ProfessionalColorPickerProps) {
+  const [isOpen, setIsOpen] = useState(false)
+
   return (
-    <Popover>
+    <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
-          className={cn(
-            'w-full justify-start text-left font-normal',
-            !color && 'text-muted-foreground'
-          )}
+          className="w-full justify-start text-left font-normal"
         >
           <div
-            className="w-4 h-4 rounded-full mr-2 border"
+            className={cn("mr-2 h-4 w-4 rounded-full border")}
             style={{ backgroundColor: color }}
           />
-          {color || 'Selecione uma cor'}
+          {color}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0">

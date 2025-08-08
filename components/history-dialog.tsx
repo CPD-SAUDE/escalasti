@@ -16,27 +16,28 @@ import { Label } from '@/components/ui/label'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { History, Trash2 } from 'lucide-react'
 import { HistoryEntry } from '@/lib/types'
 import { DatePicker } from './date-picker'
 import { Textarea } from './ui/textarea'
+import { Trash2 } from 'lucide-react'
 
 interface HistoryDialogProps {
-  history: HistoryEntry[]
-  addHistoryEntry: (date: string, description: string) => Promise<void>
-  deleteHistoryEntry: (id: string) => Promise<void>
+  history: HistoryEntry[];
+  addHistoryEntry: (date: string, description: string) => Promise<void>;
+  deleteHistoryEntry: (id: string) => Promise<void>;
 }
 
-export default function HistoryDialog({ history, addHistoryEntry, deleteHistoryEntry }: HistoryDialogProps) {
+export function HistoryDialog({ history, addHistoryEntry, deleteHistoryEntry }: HistoryDialogProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [newDate, setNewDate] = useState<Date | undefined>(new Date())
   const [newDescription, setNewDescription] = useState('')
 
   const handleAddEntry = async () => {
-    if (newDate && newDescription.trim()) {
-      await addHistoryEntry(format(newDate, 'yyyy-MM-dd'), newDescription.trim())
-      setNewDate(new Date())
+    if (newDate && newDescription) {
+      await addHistoryEntry(format(newDate, 'yyyy-MM-dd'), newDescription)
       setNewDescription('')
+      setNewDate(new Date())
+      setIsDialogOpen(false) // Fecha o diálogo após adicionar
     }
   }
 
@@ -49,67 +50,62 @@ export default function HistoryDialog({ history, addHistoryEntry, deleteHistoryE
   return (
     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="flex items-center gap-2">
-          <History className="h-4 w-4" />
-          Histórico
-        </Button>
+        <Button variant="outline">Ver Histórico</Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[600px] h-[80vh] flex flex-col">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Histórico de Eventos</DialogTitle>
           <DialogDescription>
-            Visualize e gerencie os registros de eventos importantes.
+            Visualize e gerencie os registros de eventos importantes da escala.
           </DialogDescription>
         </DialogHeader>
-
-        <div className="grid gap-4 py-4 flex-shrink-0">
+        <div className="grid gap-4 py-4 flex-grow overflow-hidden">
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="new-date" className="text-right">
+            <Label htmlFor="newDate" className="text-right">
               Data
             </Label>
             <div className="col-span-3">
-              <DatePicker date={newDate} setDate={setNewDate} />
+              <DatePicker selectedDate={newDate} onSelectDate={setNewDate} />
             </div>
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="new-description" className="text-right">
+            <Label htmlFor="newDescription" className="text-right">
               Descrição
             </Label>
-            <Textarea
-              id="new-description"
-              value={newDescription}
-              onChange={(e) => setNewDescription(e.target.value)}
-              className="col-span-3"
-              placeholder="Descreva o evento..."
-            />
+            <div className="col-span-3">
+              <Textarea
+                id="newDescription"
+                value={newDescription}
+                onChange={(e) => setNewDescription(e.target.value)}
+                placeholder="Descreva o evento..."
+                className="col-span-3"
+              />
+            </div>
           </div>
-          <Button onClick={handleAddEntry} className="col-span-4">Adicionar Registro</Button>
-        </div>
+          <Button onClick={handleAddEntry} className="w-full">Adicionar Registro</Button>
 
-        <h3 className="text-lg font-semibold mt-4 mb-2 flex-shrink-0">Registros Existentes</h3>
-        <ScrollArea className="flex-grow pr-4">
-          <div className="space-y-4">
+          <h3 className="text-lg font-semibold mt-4">Registros Existentes:</h3>
+          <ScrollArea className="h-[300px] w-full rounded-md border p-4">
             {history.length === 0 ? (
               <p className="text-center text-muted-foreground">Nenhum registro de histórico encontrado.</p>
             ) : (
-              history.map((entry) => (
-                <div key={entry.id} className="flex items-center justify-between p-3 border rounded-md bg-gray-50 dark:bg-gray-800">
-                  <div>
-                    <p className="text-sm font-medium">
-                      {format(new Date(entry.date + 'T00:00:00'), 'PPP', { locale: ptBR })}
-                    </p>
-                    <p className="text-muted-foreground text-sm">{entry.description}</p>
+              <div className="space-y-2">
+                {history.map((entry) => (
+                  <div key={entry.id} className="flex items-center justify-between p-2 border rounded-md">
+                    <div>
+                      <p className="font-medium">{format(new Date(entry.date), 'PPP', { locale: ptBR })}</p>
+                      <p className="text-sm text-muted-foreground">{entry.description}</p>
+                    </div>
+                    <Button variant="destructive" size="icon" onClick={() => handleDeleteEntry(entry.id)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
-                  <Button variant="destructive" size="icon" onClick={() => handleDeleteEntry(entry.id)}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))
+                ))}
+              </div>
             )}
-          </div>
-        </ScrollArea>
-
-        <DialogFooter className="flex-shrink-0 mt-4">
+          </ScrollArea>
+        </div>
+        <DialogFooter>
           <Button type="button" onClick={() => setIsDialogOpen(false)}>Fechar</Button>
         </DialogFooter>
       </DialogContent>

@@ -1,5 +1,5 @@
 @echo off
-echo Iniciando o frontend...
+echo Starting frontend server...
 cd %~dp0
 npm install
 
@@ -8,6 +8,6 @@ npm install
 set NEXT_PUBLIC_API_URL=http://localhost:3001/api
 
 :: Inicia o servidor de desenvolvimento do Next.js
-npm run dev
+call npm run dev
 
 pause

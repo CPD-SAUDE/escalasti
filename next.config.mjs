@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'standalone', // Necessário para o Docker build otimizado
+  output: 'standalone', // Required for Docker builds
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -11,15 +11,19 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'via.placeholder.com',
+        hostname: 'hebbkx1anhila5yf.public.blob.vercel-storage.com',
+        port: '',
+        pathname: '/git-blob/**',
       },
       {
         protocol: 'https',
         hostname: 'blob.v0.dev',
+        port: '',
+        pathname: '/**',
       },
     ],
     unoptimized: true,
   },
-}
+};
 
-export default nextConfig
+export default nextConfig;

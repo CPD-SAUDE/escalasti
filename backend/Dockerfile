@@ -1,6 +1,9 @@
 # Use uma imagem oficial do Node.js como base
 FROM node:20-alpine
 
+# Instala as ferramentas de build necessárias para sqlite3
+RUN apk add --no-cache python3 make g++
+
 # Define o diretório de trabalho dentro do contêiner
 WORKDIR /app
 

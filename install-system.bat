@@ -1,48 +1,49 @@
 @echo off
-echo Instalando o sistema de escala de sobreaviso...
+echo Installing System Dependencies...
 
 echo.
-echo --- Instalando dependências do Backend ---
+echo --- Installing Backend Dependencies ---
 cd backend
-npm install
+call npm install
 if %errorlevel% neq 0 (
-    echo Erro ao instalar dependências do backend.
+    echo Error: Backend npm install failed.
     pause
     exit /b %errorlevel%
 )
-echo Dependências do backend instaladas.
+echo Backend dependencies installed.
 
 echo.
-echo --- Inicializando o banco de dados do Backend ---
-npm run init-db
+echo --- Initializing Backend Database ---
+call npm run init-db
 if %errorlevel% neq 0 (
-    echo Erro ao inicializar o banco de dados do backend.
+    echo Error: Backend database initialization failed.
     pause
     exit /b %errorlevel%
 )
-echo Banco de dados do backend inicializado.
+echo Backend database initialized.
 cd ..
 
 echo.
-echo --- Instalando dependências do Frontend ---
-npm install
+echo --- Installing Frontend Dependencies ---
+call npm install
 if %errorlevel% neq 0 (
-    echo Erro ao instalar dependências do frontend.
+    echo Error: Frontend npm install failed.
     pause
     exit /b %errorlevel%
 )
-echo Dependências do frontend instaladas.
+echo Frontend dependencies installed.
 
 echo.
-echo --- Construindo o Frontend ---
-npm run build
+echo --- Building Frontend for Production ---
+call npm run build
 if %errorlevel% neq 0 (
-    echo Erro ao construir o frontend.
+    echo Error: Frontend build failed.
     pause
     exit /b %errorlevel%
 )
-echo Frontend construído.
+echo Frontend build complete.
 
 echo.
-echo Instalação e configuração do sistema concluídas com sucesso!
+echo System installation and build complete.
+echo You can now run 'start-system.bat' to start the application.
 pause

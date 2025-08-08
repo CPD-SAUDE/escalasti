@@ -1,7 +1,4 @@
 @echo off
-echo Iniciando o backend...
-cd %~dp0
-npm install
-npm run init-db
+echo Starting backend server...
+cd backend
 npm start
-pause

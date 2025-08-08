@@ -1,17 +1,21 @@
 @echo off
-echo Configurando a rede para o frontend...
+echo Configurando rede...
 
-REM Obtém o IP da rede usando o script Node.js
-for /f "delims=" %%i in ('node backend\scripts\get-network-ip.js') do set "BACKEND_IP=%%i"
+:: Obtém o IP da máquina local
+for /f "tokens=2 delims=:" %%a in ('ipconfig ^| findstr /i "IPv4 Address"') do set "LOCAL_IP=%%a"
+set "LOCAL_IP=%LOCAL_IP:~1%"
 
-echo IP do Backend detectado: %BACKEND_IP%
+echo IP Local detectado: %LOCAL_IP%
 
-REM Define a variável de ambiente NEXT_PUBLIC_API_URL para o frontend
-REM Isso cria ou sobrescreve o arquivo .env.local na raiz do frontend
-echo NEXT_PUBLIC_API_URL=http://%BACKEND_IP%:3001/api > .env.local
+:: Atualiza o arquivo .env.local do frontend
+echo NEXT_PUBLIC_API_URL=http://%LOCAL_IP%:3001/api > .env.local
+echo .env.local atualizado com o IP do backend.
 
-echo Arquivo .env.local criado/atualizado com sucesso na raiz do frontend.
-echo Conteúdo de .env.local:
-type .env.local
+:: Atualiza a configuração do backend no banco de dados (se o backend estiver rodando)
+echo.
+echo Tentando atualizar o IP do backend no banco de dados...
+node backend/scripts/update-backend-ip.js %LOCAL_IP%
 
+echo.
+echo Configuração de rede concluída.
 pause

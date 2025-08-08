@@ -99,3 +99,16 @@ export async function updateConfig(config: Partial<Config>): Promise<Config> {
   })
   return handleResponse(response)
 }
+
+// This file can be used for centralized API calls if needed,
+// but currently, hooks directly use fetch.
+// Example:
+// const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+
+// export async function fetchProfessionals() {
+//   const response = await fetch(`${API_BASE_URL}/professionals`);
+//   if (!response.ok) {
+//     throw new Error('Failed to fetch professionals');
+//   }
+//   return response.json();
+// }

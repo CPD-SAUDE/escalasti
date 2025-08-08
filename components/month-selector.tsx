@@ -6,11 +6,11 @@ import { format, addMonths, subMonths } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
 interface MonthSelectorProps {
-  currentMonth: Date
-  onMonthChange: (newMonth: Date) => void
+  currentMonth: Date;
+  onMonthChange: (newMonth: Date) => void;
 }
 
-export default function MonthSelector({ currentMonth, onMonthChange }: MonthSelectorProps) {
+export function MonthSelector({ currentMonth, onMonthChange }: MonthSelectorProps) {
   const handlePreviousMonth = () => {
     onMonthChange(subMonths(currentMonth, 1))
   }

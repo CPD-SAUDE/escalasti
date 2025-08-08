@@ -2,7 +2,7 @@ const db = require('../database/database');
 const { v4: uuidv4 } = require('uuid');
 
 exports.getAllProfessionals = (req, res) => {
-  db.all(`SELECT * FROM professionals ORDER BY name ASC`, (err, rows) => {
+  db.all(`SELECT * FROM professionals ORDER BY name`, (err, rows) => {
     if (err) {
       console.error("Erro ao buscar profissionais:", err.message);
       return res.status(500).json({ error: err.message });
@@ -14,7 +14,7 @@ exports.getAllProfessionals = (req, res) => {
 exports.addProfessional = (req, res) => {
   const { name, color } = req.body;
   if (!name || !color) {
-    return res.status(400).json({ error: "Nome e cor são obrigatórios." });
+    return res.status(400).json({ error: 'Nome e cor são obrigatórios.' });
   }
   const id = uuidv4();
   db.run(`INSERT INTO professionals (id, name, color) VALUES (?, ?, ?)`, [id, name, color], function(err) {
@@ -30,7 +30,7 @@ exports.updateProfessional = (req, res) => {
   const { id } = req.params;
   const { name, color } = req.body;
   if (!name || !color) {
-    return res.status(400).json({ error: "Nome e cor são obrigatórios." });
+    return res.status(400).json({ error: 'Nome e cor são obrigatórios.' });
   }
   db.run(`UPDATE professionals SET name = ?, color = ? WHERE id = ?`, [name, color, id], function(err) {
     if (err) {
@@ -38,7 +38,7 @@ exports.updateProfessional = (req, res) => {
       return res.status(500).json({ error: err.message });
     }
     if (this.changes === 0) {
-      return res.status(404).json({ message: "Profissional não encontrado." });
+      return res.status(404).json({ message: 'Profissional não encontrado.' });
     }
     res.json({ message: 'Profissional atualizado com sucesso', changes: this.changes });
   });
@@ -52,7 +52,7 @@ exports.deleteProfessional = (req, res) => {
       return res.status(500).json({ error: err.message });
     }
     if (this.changes === 0) {
-      return res.status(404).json({ message: "Profissional não encontrado." });
+      return res.status(404).json({ message: 'Profissional não encontrado.' });
     }
     res.json({ message: 'Profissional deletado com sucesso', changes: this.changes });
   });

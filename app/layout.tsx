@@ -7,7 +7,7 @@ const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: 'Sistema de Escala de Sobreaviso',
-  description: 'Sistema para gerenciar escalas de sobreaviso de profissionais.',
+  description: 'Gerenciamento de escala de sobreaviso para equipes de TI',
     generator: 'v0.dev'
 }
 

@@ -1,58 +1,41 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { CircleCheck, CircleX, Loader2 } from 'lucide-react'
-import { getApiStatus } from '@/lib/api'
+import { useState, useEffect } from 'react'
+import { Badge } from '@/components/ui/badge'
 
-export default function ApiStatus() {
-  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
-  const [message, setMessage] = useState('Verificando status da API...')
+export function ApiStatus() {
+  const [status, setStatus] = useState('Verificando...')
+  const [variant, setVariant] = useState<'default' | 'secondary' | 'destructive' | 'outline' | 'success' | null | undefined>('secondary')
 
   useEffect(() => {
-    checkStatus()
-    const interval = setInterval(checkStatus, 10000) // Verifica a cada 10 segundos
-    return () => clearInterval(interval)
+    const checkApiStatus = async () => {
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'
+        const response = await fetch(`${apiUrl}/status`)
+        if (response.ok) {
+          const data = await response.json()
+          setStatus(`Online: ${data.status}`)
+          setVariant('success')
+        } else {
+          setStatus('Offline')
+          setVariant('destructive')
+        }
+      } catch (error) {
+        setStatus('Offline (Erro de conexão)')
+        setVariant('destructive')
+        console.error('Erro ao verificar status da API:', error)
+      }
+    }
+
+    checkApiStatus()
+    const interval = setInterval(checkApiStatus, 30000); // Verifica a cada 30 segundos
+
+    return () => clearInterval(interval);
   }, [])
 
-  const checkStatus = async () => {
-    setStatus('loading')
-    setMessage('Verificando status da API...')
-    try {
-      const response = await getApiStatus()
-      if (response.status === 'Backend is running!') {
-        setStatus('success')
-        setMessage('API do Backend está online e conectada ao banco de dados.')
-      } else {
-        setStatus('error')
-        setMessage('API do Backend está offline ou com problemas de conexão.')
-      }
-    } catch (error) {
-      setStatus('error')
-      setMessage('Não foi possível conectar à API do Backend. Verifique a rede e o servidor.')
-      console.error('Erro ao verificar status da API:', error)
-    }
-  }
-
   return (
-    <Alert className="w-auto max-w-md">
-      {status === 'loading' && <Loader2 className="h-4 w-4 animate-spin" />}
-      {status === 'success' && <CircleCheck className="h-4 w-4 text-green-500" />}
-      {status === 'error' && <CircleX className="h-4 w-4 text-red-500" />}
-      <AlertTitle>Status da API</AlertTitle>
-      <AlertDescription>
-        {message}
-      </AlertDescription>
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={checkStatus}
-        className="ml-auto"
-        disabled={status === 'loading'}
-      >
-        {status === 'loading' ? 'Verificando...' : 'Tentar Novamente'}
-      </Button>
-    </Alert>
+    <Badge variant={variant} className="text-sm">
+      Status da API: {status}
+    </Badge>
   )
 }

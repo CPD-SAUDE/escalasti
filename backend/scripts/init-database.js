@@ -1,13 +1,4 @@
 const db = require('../database/database');
-const path = require('path');
-const fs = require('fs');
-
-// Garante que o diretório 'database' exista
-const dbDir = path.resolve(__dirname, '../database');
-if (!fs.existsSync(dbDir)) {
-  fs.mkdirSync(dbDir, { recursive: true });
-  console.log(`Diretório 'database' criado em: ${dbDir}`);
-}
 
 db.serialize(() => {
   // Tabela de Profissionais

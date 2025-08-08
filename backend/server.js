@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const bodyParser = require('body-parser'); // Importar body-parser
 const path = require('path');
 const db = require('./database/database'); // Importa a conexão com o banco de dados
 
@@ -16,7 +17,7 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 
 // Middleware para parsear JSON no corpo das requisições
-app.use(express.json());
+app.use(bodyParser.json()); // Usar body-parser para JSON
 
 // Usar rotas
 app.use('/api/professionals', professionalsRoutes);

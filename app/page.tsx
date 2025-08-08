@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, parseISO, getWeek } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -51,9 +51,10 @@ export default function Home() {
     schedule,
     addOrUpdateScheduleEntry,
     deleteScheduleEntry,
+    getScheduleByMonth,
     isLoading: isLoadingSchedule,
     error: errorSchedule,
-  } = useSchedule(currentMonth.getFullYear(), currentMonth.getMonth() + 1);
+  } = useSchedule();
   const {
     history,
     addHistoryEntry,
@@ -101,6 +102,10 @@ export default function Home() {
       document.body.classList.remove('print-preview-active-body-wrapper');
     };
   }, [isPrintPreviewActive]);
+
+  useEffect(() => {
+    getScheduleByMonth(currentMonth.getFullYear(), currentMonth.getMonth() + 1);
+  }, [currentMonth, getScheduleByMonth]);
 
   const handleToggleProfessionalActive = (id: string, checked: boolean) => {
     setActiveProfessionalIds(prev => {

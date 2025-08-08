@@ -1,45 +1,57 @@
-import { useState, useEffect, useCallback } from 'react'
-import { getConfig, updateConfig as apiUpdateConfig } from '@/lib/api'
-import { Config } from '@/lib/types'
+import { useState, useEffect, useCallback } from 'react';
+import { Config } from '@/lib/types';
 
 export function useConfig() {
-  const [config, setConfig] = useState<Config>({ backendIp: null })
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [config, setConfig] = useState<Config | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
   const fetchConfig = useCallback(async () => {
-    setIsLoading(true)
-    setError(null)
+    setLoading(true);
+    setError(null);
     try {
-      const data = await getConfig()
-      setConfig(data)
-    } catch (err) {
-      console.error("Failed to fetch config:", err)
-      setError("Falha ao carregar configurações.")
+      const response = await fetch(`${apiUrl}/config`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data: Config = await response.json();
+      setConfig(data);
+    } catch (e: any) {
+      setError(e.message);
+      console.error("Failed to fetch config:", e);
     } finally {
-      setIsLoading(false)
+      setLoading(false);
     }
-  }, [])
-
-  useEffect(() => {
-    fetchConfig()
-  }, [fetchConfig])
+  }, [apiUrl]);
 
   const updateConfig = useCallback(async (newConfig: Partial<Config>) => {
-    setIsLoading(true)
-    setError(null)
+    setLoading(true);
+    setError(null);
     try {
-      const updated = await apiUpdateConfig({ ...config, ...newConfig })
-      setConfig(updated)
-      // Re-fetch para garantir que o estado local está sincronizado com o DB
-      await fetchConfig()
-    } catch (err) {
-      console.error("Failed to update config:", err)
-      setError("Falha ao atualizar configurações.")
+      const response = await fetch(`${apiUrl}/config`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newConfig),
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      await fetchConfig(); // Re-fetch config to ensure state is up-to-date
+    } catch (e: any) {
+      setError(e.message);
+      console.error("Failed to update config:", e);
     } finally {
-      setIsLoading(false)
+      setLoading(false);
     }
-  }, [config, fetchConfig])
+  }, [apiUrl, fetchConfig]);
 
-  return { config, isLoading, error, updateConfig, refetchConfig: fetchConfig }
+  useEffect(() => {
+    fetchConfig();
+  }, [fetchConfig]);
+
+  return { config, loading, error, updateConfig, fetchConfig };
 }
