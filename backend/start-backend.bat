@@ -1,19 +1,20 @@
 @echo off
-echo Starting backend...
+echo Iniciando o backend...
 
 :: Navega para o diretório do backend
 cd backend
 
 :: Instala as dependências (se ainda não estiverem instaladas)
-echo Installing backend dependencies...
-npm install
+echo Instalando dependências do backend...
+npm install --force
 
-:: Inicializa o banco de dados (cria o arquivo e tabelas se não existirem)
-echo Initializing database...
+:: Inicializa o banco de dados (cria o arquivo database.db e as tabelas se não existirem)
+echo Inicializando o banco de dados...
 npm run init-db
 
-:: Inicia o servidor backend
-echo Starting backend server...
-npm start
+:: Inicia o servidor backend em modo de desenvolvimento (com nodemon)
+echo Iniciando o servidor backend...
+npm run dev
 
+:: Mantém a janela do prompt aberta após a execução
 pause

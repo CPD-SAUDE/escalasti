@@ -1,14 +1,47 @@
 @echo off
-setlocal
+echo Configurando a rede para o sistema de escala de sobreaviso...
 
-echo Configurando a rede para o sistema...
+:: Verifica se o Docker está em execução
+docker info >nul 2>&1
+if %errorlevel% neq 0 (
+    echo Erro: Docker não está em execução. Por favor, inicie o Docker Desktop.
+    pause
+    exit /b 1
+)
 
-:: Este script é um exemplo e pode precisar de ajustes dependendo do seu ambiente.
-:: Ele tenta obter o IP da máquina e exibi-lo.
+:: Nome da rede Docker
+set NETWORK_NAME=app_network
+
+:: Verifica se a rede já existe
+docker network inspect %NETWORK_NAME% >nul 2>&1
+if %errorlevel% equ 0 (
+    echo A rede '%NETWORK_NAME%' já existe.
+) else (
+    :: Cria a rede Docker
+    echo Criando a rede '%NETWORK_NAME%'...
+    docker network create %NETWORK_NAME%
+    if %errorlevel% neq 0 (
+        echo Erro ao criar a rede '%NETWORK_NAME%'.
+        pause
+        exit /b 1
+    )
+    echo Rede '%NETWORK_NAME%' criada com sucesso.
+)
 
 echo Obtendo o IP da rede local...
-for /f "tokens=2 delims=:" %%a in ('ipconfig ^| findstr /i "IPv4 Address"') do set "IP_ADDRESS=%%a"
+for /f "tokens=2 delims=:" %%a in ('ipconfig ^| findstr /i "IPv4 Address"') do (
+    set "IP_ADDRESS=%%a"
+)
+set "IP_ADDRESS=%IP_ADDRESS: =%"
 set "IP_ADDRESS=%IP_ADDRESS:~1%"
+
+echo IP da rede local detectado: %IP_ADDRESS%
+
+REM Atualizar o arquivo .env.local do frontend
+echo NEXT_PUBLIC_API_URL=http://%IP_ADDRESS%:3001/api > .env.local
+
+echo Arquivo .env.local atualizado com o IP do backend.
+echo Agora voce pode iniciar o frontend com 'npm run dev'.
 
 echo.
 echo Seu IP de rede local (provável): %IP_ADDRESS%
@@ -24,29 +57,5 @@ echo você precisará definir a variável de ambiente NEXT_PUBLIC_API_URL no fro
 echo set NEXT_PUBLIC_API_URL=http://localhost:3001/api
 echo.
 
-echo.
-echo ==================================================
-echo Configurando o IP da Rede para o Backend
-echo ==================================================
-echo.
-
-:: Tenta obter o IP da rede local usando o script Node.js
-echo Getting network IP...
-node backend\scripts\get-network-ip.js > network_ip.txt
-set /p NETWORK_IP=<network_ip.txt
-del network_ip.txt
-echo Network IP: %NETWORK_IP%
-
-echo Updating backend config with network IP...
-curl -X POST -H "Content-Type: application/json" -d "{\"networkIp\": \"%NETWORK_IP%\"}" http://localhost:3001/api/config
-echo.
-echo Network configuration complete.
-
-echo.
-echo ==================================================
-echo Configuracao Concluida
-echo ==================================================
-echo.
-
+echo Configuração de rede concluída.
 pause
-endlocal

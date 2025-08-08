@@ -50,7 +50,7 @@ app.use('/api/config', configRoutes);
 
 // Rota de status da API
 app.get('/api/status', (req, res) => {
-  res.json({ status: 'API está online!', timestamp: new Date().toISOString() });
+  res.json({ status: 'Backend is running!', timestamp: new Date() });
 });
 
 // Catch-all para rotas /api que não foram tratadas por nenhum endpoint específico

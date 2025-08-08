@@ -1,78 +1,112 @@
 # Backend do Sistema de Escala de Sobreaviso
 
-Este é o backend do sistema de escala de sobreaviso, construído com Node.js e Express.js, utilizando SQLite como banco de dados.
+Este é o backend da aplicação de escala de sobreaviso, construído com Node.js e Express.js, utilizando SQLite como banco de dados.
 
-## Tecnologias Utilizadas
+## Estrutura do Projeto
 
-- Node.js
-- Express.js
-- SQLite3 (com `sqlite3` npm package)
-- `cors` para lidar com requisições de diferentes origens
-- `body-parser` para parsear corpos de requisição HTTP
+\`\`\`
+backend/
+├── controllers/      # Lógica de negócio para as rotas
+├── database/         # Configuração do banco de dados SQLite
+├── routes/           # Definição das rotas da API
+├── scripts/          # Scripts de inicialização (ex: init-database.js)
+├── server.js         # Ponto de entrada do servidor
+└── package.json      # Dependências do backend
+\`\`\`
 
-## Estrutura de Pastas
+## Como Rodar Localmente (sem Docker)
 
-- `controllers/`: Contém a lógica de negócio para cada rota da API.
-- `database/`: Gerencia a conexão com o banco de dados SQLite e a inicialização do schema.
-- `routes/`: Define as rotas da API e as associa aos controladores.
-- `scripts/`: Scripts utilitários, como o de inicialização do banco de dados.
-- `server.js`: O ponto de entrada principal do servidor Express.
-
-## Como Rodar Localmente (para Desenvolvimento)
-
-1.  **Navegue até a pasta `backend`:**
+1.  **Navegue até a pasta do backend:**
     \`\`\`bash
     cd backend
     \`\`\`
 
 2.  **Instale as dependências:**
     \`\`\`bash
-    npm install
+    npm install --force
     \`\`\`
 
 3.  **Inicialize o banco de dados:**
-    Este script criará o arquivo `database.sqlite` na pasta `backend/database` e configurará as tabelas necessárias.
+    Este script cria o arquivo `database.db` e as tabelas necessárias se elas não existirem.
     \`\`\`bash
     npm run init-db
     \`\`\`
 
-4.  **Inicie o servidor:**
+4.  **Inicie o servidor de desenvolvimento:**
     \`\`\`bash
-    npm start
+    npm run dev
     \`\`\`
     O servidor estará rodando em `http://localhost:3001`.
 
 ## Endpoints da API
 
-O backend expõe os seguintes endpoints sob o prefixo `/api`:
+A API está disponível em `http://localhost:3001/api`.
 
--   **Configurações (`/api/config`)**
-    -   `GET /api/config`: Obtém a configuração atual (ex: IP da rede).
-    -   `POST /api/config`: Atualiza a configuração.
+### Profissionais
 
--   **Profissionais (`/api/professionals`)**
-    -   `GET /api/professionals`: Lista todos os profissionais cadastrados.
-    -   `POST /api/professionals`: Adiciona um novo profissional.
-    -   `PUT /api/professionals/:id`: Atualiza um profissional existente.
-    -   `DELETE /api/professionals/:id`: Remove um profissional.
+-   \`GET /api/professionals\`: Retorna todos os profissionais cadastrados.
+-   \`POST /api/professionals\`: Adiciona um novo profissional.
+    \`\`\`json
+    {
+        "name": "Nome do Profissional",
+        "color": "#HEXCOLOR"
+    }
+    \`\`\`
+-   \`PUT /api/professionals/:id\`: Atualiza um profissional existente.
+    \`\`\`json
+    {
+        "name": "Novo Nome",
+        "color": "#NEWHEXCOLOR"
+    }
+    \`\`\`
+-   \`DELETE /api/professionals/:id\`: Remove um profissional.
 
--   **Escala (`/api/schedule`)**
-    -   `GET /api/schedule/:year/:month`: Obtém a escala para um mês e ano específicos.
-    -   `POST /api/schedule`: Adiciona ou atualiza uma entrada na escala para uma data.
+### Escala
 
--   **Histórico (`/api/history`)**
-    -   `GET /api/history`: Lista todas as entradas do histórico.
-    -   `POST /api/history`: Adiciona uma nova entrada ao histórico.
+-   \`GET /api/schedule/:year/:month\`: Retorna a escala para um mês e ano específicos.
+-   \`POST /api/schedule\`: Adiciona ou atualiza uma entrada na escala.
+    \`\`\`json
+    {
+        "date": "YYYY-MM-DD",
+        "professionalId": 123
+    }
+    \`\`\`
+    (Se `professionalId` for `null`, remove a atribuição para a data.)
 
-## Banco de Dados
+### Histórico
 
-O banco de dados é um arquivo SQLite (`database.sqlite`) localizado em `backend/database`. Ele é criado e inicializado pelo script `npm run init-db`.
+-   \`GET /api/history\`: Retorna todas as entradas do histórico.
+-   \`POST /api/history\`: Adiciona uma nova entrada ao histórico.
+    \`\`\`json
+    {
+        "date": "YYYY-MM-DD",
+        "description": "Descrição do evento"
+    }
+    \`\`\`
 
-## Variáveis de Ambiente
+### Configurações
 
-Atualmente, não há variáveis de ambiente críticas para o funcionamento do backend, mas você pode adicionar se precisar de configurações como portas, strings de conexão de DB externas, etc.
+-   \`GET /api/config\`: Retorna as configurações atuais (ex: IP do backend).
+-   \`POST /api/config\`: Atualiza as configurações.
+    \`\`\`json
+    {
+        "backendIp": "192.168.1.100"
+    }
+    \`\`\`
+
+## Banco de Dados (SQLite)
+
+O banco de dados é um arquivo SQLite (`database.db`) localizado na pasta `backend/database`. Ele é criado e inicializado pelo script `scripts/init-database.js`.
+
+## Dependências
+
+As dependências estão listadas no `package.json` e incluem:
+-   `express`: Framework web para Node.js.
+-   `sqlite3` ou `better-sqlite3`: Driver para SQLite.
+-   `cors`: Middleware para habilitar Cross-Origin Resource Sharing.
+-   `nodemon` (dev): Para reiniciar o servidor automaticamente durante o desenvolvimento.
+-   `dotenv` (dev): Para carregar variáveis de ambiente de um arquivo `.env`.
 
 ## Contribuição
 
 Sinta-se à vontade para contribuir com melhorias, correções de bugs ou novas funcionalidades.
-\`\`\`

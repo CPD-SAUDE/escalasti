@@ -1,22 +1,22 @@
 # Sistema de Escala de Sobreaviso
 
-Este é um sistema para gerenciar escalas de sobreaviso, composto por um frontend em Next.js e um backend em Node.js/Express com SQLite.
+Este é um sistema para gerenciar escalas de sobreaviso, composto por um frontend em Next.js e um backend em Node.js (Express) com SQLite.
 
 ## Tecnologias Utilizadas
 
-- **Frontend:** Next.js (React), TypeScript, Tailwind CSS, Shadcn/ui
-- **Backend:** Node.js, Express.js, SQLite3
-- **Containerização:** Docker, Docker Compose
+-   **Frontend:** Next.js (React), Tailwind CSS, Shadcn/ui
+-   **Backend:** Node.js, Express.js, SQLite3
+-   **Containerização:** Docker, Docker Compose
 
-## Pré-requisitos
+## Como Rodar o Projeto (com Docker Compose)
 
-- Node.js (versão 18 ou superior)
-- npm (gerenciador de pacotes do Node.js)
-- Docker Desktop (ou Docker Engine e Docker Compose)
+A maneira recomendada de rodar este projeto é usando Docker Compose, que orquestra tanto o frontend quanto o backend.
 
-## Como Rodar com Docker Compose (Recomendado)
+### Pré-requisitos
 
-A maneira mais fácil de colocar o sistema em funcionamento é usando o Docker Compose.
+-   [Docker Desktop](https://www.docker.com/products/docker-desktop/) (inclui Docker Engine e Docker Compose) instalado e em execução.
+
+### Passos para Iniciar
 
 1.  **Clone o repositório:**
     \`\`\`bash
@@ -24,29 +24,41 @@ A maneira mais fácil de colocar o sistema em funcionamento é usando o Docker C
     cd escalasti
     \`\`\`
 
-2.  **Construa e inicie os contêineres:**
+2.  **Inicie os serviços Docker:**
     Na raiz do projeto (onde o `docker-compose.yml` está), execute:
     \`\`\`bash
     docker compose up --build -d
     \`\`\`
-    - `--build`: Reconstrói as imagens Docker (útil na primeira vez ou após alterações nos Dockerfiles).
-    - `-d`: Executa os contêineres em modo detached (em segundo plano).
+    -   `--build`: Garante que as imagens Docker sejam construídas (ou reconstruídas) antes de iniciar os contêineres.
+    -   `-d`: Inicia os contêineres em modo "detached" (em segundo plano).
 
-3.  **Acesse o sistema:**
-    Abra seu navegador e vá para `http://localhost:3000`.
+3.  **Acesse a aplicação:**
+    Após os contêineres estarem em execução, o frontend estará disponível em:
+    [http://localhost:3000](http://localhost:3000)
 
-4.  **Parar o sistema:**
-    Para parar e remover os contêineres, redes e volumes criados pelo Docker Compose, execute:
-    \`\`\`bash
-    docker compose down -v
-    \`\`\`
-    - `-v`: Remove também os volumes, o que apagará o banco de dados SQLite persistido. Use com cautela.
+    O backend (API) estará disponível em:
+    [http://localhost:3001/api](http://localhost:3001/api)
 
-## Como Rodar Localmente (para Desenvolvimento)
+### Parar os Serviços Docker
 
-Se você preferir rodar o frontend e o backend separadamente para desenvolvimento:
+Para parar e remover os contêineres, redes e volumes criados pelo Docker Compose:
+\`\`\`bash
+docker compose down
+\`\`\`
 
-### 1. Backend
+### Reconstruir Imagens (se houver mudanças nos Dockerfiles ou dependências)
+
+Se você fizer alterações nos `Dockerfile`s ou nas dependências (`package.json`), você precisará reconstruir as imagens:
+\`\`\`bash
+docker compose build
+\`\`\`
+E então, inicie novamente com `docker compose up -d`.
+
+## Como Rodar o Projeto (Localmente - Sem Docker)
+
+Se você preferir rodar o frontend e o backend separadamente sem Docker Compose:
+
+### Backend (Node.js)
 
 1.  **Navegue até a pasta do backend:**
     \`\`\`bash
@@ -55,41 +67,38 @@ Se você preferir rodar o frontend e o backend separadamente para desenvolviment
 
 2.  **Instale as dependências:**
     \`\`\`bash
-    npm install
+    npm install --force
     \`\`\`
 
-3.  **Inicialize o banco de dados:**
+3.  **Inicialize o banco de dados (se for a primeira vez):**
     \`\`\`bash
     npm run init-db
     \`\`\`
-    Isso criará o arquivo `database.sqlite` na pasta `backend/database`.
 
-4.  **Inicie o servidor backend:**
+4.  **Inicie o servidor de desenvolvimento:**
     \`\`\`bash
-    npm start
+    npm run dev
     \`\`\`
     O backend estará rodando em `http://localhost:3001`.
 
-### 2. Frontend
+### Frontend (Next.js)
 
-1.  **Navegue de volta para a raiz do projeto:**
+1.  **Volte para a raiz do projeto e navegue até a pasta do frontend:**
     \`\`\`bash
     cd ..
     \`\`\`
+    (Você já deve estar na raiz se seguiu os passos do backend)
 
-2.  **Instale as dependências (com --force se necessário):**
+2.  **Instale as dependências:**
     \`\`\`bash
     npm install --force
     \`\`\`
-    (Use `--force` apenas se `npm install` falhar devido a problemas de dependência).
 
 3.  **Configure a variável de ambiente da API:**
-    O frontend precisa saber onde o backend está rodando.
-    - **No Windows (CMD/PowerShell):**
-        \`\`\`cmd
-        set NEXT_PUBLIC_API_URL=http://localhost:3001/api
-        npm run dev
-        \`\`\`
+    Crie um arquivo `.env.local` na raiz do projeto e adicione:
+    \`\`\`
+    NEXT_PUBLIC_API_URL=http://localhost:3001/api
+    \`\`\`
     -   **No Linux/macOS:**
         \`\`\`bash
         export NEXT_PUBLIC_API_URL=http://localhost:3001/api
@@ -137,4 +146,3 @@ Sinta-se à vontade para contribuir com melhorias, correções de bugs ou novas 
 ## Licença
 
 [Adicione sua licença aqui, por exemplo, MIT]
-\`\`\`

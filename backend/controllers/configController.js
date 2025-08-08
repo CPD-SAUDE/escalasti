@@ -6,21 +6,21 @@ exports.getConfig = (req, res) => {
       res.status(500).json({ error: err.message });
       return;
     }
-    res.json(row || { id: 1, networkIp: '127.0.0.1' }); // Retorna um valor padrão se não houver config
+    res.json(row || { id: 1, backendIp: null }); // Retorna um objeto padrão se não houver configuração
   });
 };
 
 exports.updateConfig = (req, res) => {
-  const { networkIp } = req.body;
+  const { backendIp } = req.body;
   db.run(
-    `INSERT OR REPLACE INTO config (id, networkIp) VALUES (1, ?)`,
-    [networkIp],
+    `INSERT OR REPLACE INTO config (id, backendIp) VALUES (1, ?)`,
+    [backendIp],
     function (err) {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
       }
-      res.json({ message: 'Configuração atualizada com sucesso', networkIp: networkIp });
+      res.json({ message: 'Configuração atualizada com sucesso', id: this.lastID });
     }
   );
 };

@@ -1,76 +1,100 @@
 # Configuração de Rede para o Sistema de Escala de Sobreaviso
 
-Este documento descreve como configurar a rede para o sistema de escala de sobreaviso, garantindo que o frontend e o backend possam se comunicar corretamente, especialmente em ambientes Docker.
+Este documento descreve como configurar a rede para o sistema de escala de sobreaviso, garantindo que o frontend e o backend possam se comunicar corretamente, especialmente em ambientes de desenvolvimento ou em redes locais.
 
-## 1. Visão Geral da Rede Docker
+## 1. Visão Geral da Rede
 
-O `docker-compose.yml` define uma rede bridge chamada `app_network`. Esta rede permite que os contêineres `frontend` e `backend` se comuniquem entre si usando seus nomes de serviço como nomes de host.
+O sistema é composto por dois serviços principais:
+- **Backend:** Um servidor Node.js/Express que expõe uma API REST e interage com um banco de dados SQLite.
+- **Frontend:** Uma aplicação Next.js que consome a API do backend.
 
-- **Frontend:** Acessível externamente na porta `3000` do host.
-- **Backend:** Acessível externamente na porta `3001` do host. Internamente, o frontend se comunica com o backend usando `http://backend:3001/api`.
+Em um ambiente Docker Compose, esses serviços são executados em uma rede Docker interna, onde podem se comunicar usando seus nomes de serviço (ex: `http://backend:3001/api`). No entanto, para acesso externo (do seu navegador) ou para depuração, é importante entender como as portas são mapeadas e como o frontend se conecta ao backend.
 
-## 2. Variáveis de Ambiente
+## 2. Configuração no `docker-compose.yml`
 
-O frontend precisa saber onde encontrar o backend. Isso é configurado através da variável de ambiente `NEXT_PUBLIC_API_URL`.
+O arquivo `docker-compose.yml` define a rede e a comunicação entre os serviços:
 
-- **No `docker-compose.yml`:**
-  \`\`\`yaml
+\`\`\`yaml
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001" # Mapeia a porta 3001 do host para a porta 3001 do contêiner
+    volumes:
+      - backend_data:/app/database # Volume persistente para o banco de dados
+    restart: always
+    networks:
+      - app_network # Conecta à rede interna
+
   frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000" # Mapeia a porta 3000 do host para a porta 3000 do contêiner
     environment:
+      # Define a URL da API para o frontend. 'backend' é o nome do serviço no Docker Compose.
       NEXT_PUBLIC_API_URL: http://backend:3001/api
-  \`\`\`
-  Quando rodando via Docker Compose, `backend` é resolvido para o IP interno do contêiner do backend dentro da `app_network`.
+    depends_on:
+      - backend
+    restart: always
+    networks:
+      - app_network # Conecta à rede interna
 
-## 3. Acesso Externo (Host)
+volumes:
+  backend_data:
 
-Para acessar o sistema do seu navegador no host, você usará:
+networks:
+  app_network:
+    driver: bridge # Define uma rede bridge para os contêineres se comunicarem
+\`\`\`
 
-- **Frontend:** `http://localhost:3000`
-- **Backend (API):** `http://localhost:3001/api` (para testes diretos da API, se necessário)
+**Pontos Chave:**
+- **`ports`:** As portas `3000` (frontend) e `3001` (backend) são mapeadas do contêiner para o seu host, permitindo que você acesse as aplicações do seu navegador (ex: `http://localhost:3000`).
+- **`networks`:** Ambos os serviços estão na `app_network`, o que permite que eles se comuniquem internamente usando seus nomes de serviço (`backend` e `frontend`).
+- **`NEXT_PUBLIC_API_URL`:** Esta variável de ambiente no serviço `frontend` é crucial. Ela informa ao frontend onde encontrar o backend. Dentro da rede Docker, o nome do serviço (`backend`) é resolvido para o IP interno do contêiner do backend.
 
-## 4. Solução de Problemas de Rede
+## 3. Acesso Externo e Teste de Conectividade
 
-### Contêineres não se comunicam:
+### Acessando as Aplicações
 
-- **Verifique a rede Docker:**
-  \`\`\`bash
-  docker network ls
-  docker network inspect app_network
-  \`\`\`
-  Certifique-se de que ambos os contêineres (`frontend` e `backend`) estão conectados à `app_network`.
+- **Frontend:** Após iniciar os contêineres, você pode acessar a aplicação frontend no seu navegador através de `http://localhost:3000`.
+- **Backend (API):** Você pode testar a API do backend diretamente através de `http://localhost:3001/api` (ou rotas específicas como `http://localhost:3001/api/professionals`).
 
-- **Verifique os logs dos contêineres:**
-  \`\`\`bash
-  docker logs <nome_do_container_frontend>
-  docker logs <nome_do_container_backend>
-  \`\`\`
-  Procure por erros de conexão ou mensagens relacionadas à API.
+### Verificando a Conectividade (Opcional)
 
-- **Firewall:**
-  Certifique-se de que seu firewall local não está bloqueando as portas `3000` e `3001`.
+Se você tiver problemas de comunicação, pode depurar a rede Docker:
 
-### Frontend não consegue se conectar ao Backend:
-
-- **Variável `NEXT_PUBLIC_API_URL`:**
-  Confirme se a variável `NEXT_PUBLIC_API_URL` no `docker-compose.yml` está configurada corretamente para `http://backend:3001/api`. O nome `backend` deve corresponder ao nome do serviço do backend no `docker-compose.yml`.
-
-- **Ordem de inicialização:**
-  O `depends_on: - backend` no serviço `frontend` do `docker-compose.yml` garante que o backend seja iniciado antes do frontend, mas não garante que o backend esteja *pronto* para aceitar conexões. Se o backend demorar para iniciar, o frontend pode tentar se conectar muito cedo. Isso geralmente é mitigado com lógicas de retry no frontend ou com ferramentas como `wait-for-it.sh` no Dockerfile (não implementado aqui, mas uma opção avançada).
-
-## 5. Configuração de Rede para Desenvolvimento Local (sem Docker Compose)
-
-Se você estiver rodando o frontend e o backend separadamente (sem Docker Compose), você precisará configurar a variável `NEXT_PUBLIC_API_URL` para apontar para o IP ou hostname do seu backend no host.
-
-- **Exemplo (se o backend estiver rodando localmente na porta 3001):**
-  - **No Windows (CMD/PowerShell):**
-    \`\`\`cmd
-    set NEXT_PUBLIC_API_URL=http://localhost:3001/api
-    npm run dev
-    \`\`\`
-  - **No Linux/macOS:**
+1.  **Listar redes Docker:**
     \`\`\`bash
-    export NEXT_PUBLIC_API_URL=http://localhost:3001/api
-    npm run dev
+    docker network ls
     \`\`\`
+    Procure por `escalasti_app_network` (o nome da rede será prefixado com o nome da sua stack Docker).
 
-Lembre-se de que, ao usar o Docker Compose, a comunicação interna entre os contêineres é gerenciada pela rede Docker, e `localhost` dentro de um contêiner se refere ao próprio contêiner, não ao host ou a outros contêineres. Por isso, usamos `http://backend:3001/api`.
+2.  **Inspecionar a rede:**
+    \`\`\`bash
+    docker network inspect <ID_DA_REDE>
+    \`\`\`
+    Isso mostrará os contêineres conectados à rede e seus IPs internos.
+
+3.  **Acessar um contêiner para testar a conectividade:**
+    Você pode entrar no contêiner do frontend e tentar "pingar" o backend:
+    \`\`\`bash
+    docker exec -it <ID_DO_CONTÊINER_FRONTEND> sh
+    ping backend
+    \`\`\`
+    (Você pode precisar instalar `iputils-ping` dentro do contêiner se não estiver disponível).
+
+## 4. Considerações para Produção
+
+Em um ambiente de produção, a configuração de rede pode ser mais complexa, envolvendo:
+-   **Reverse Proxy:** Usar Nginx ou Caddy para rotear o tráfego para os contêineres Docker.
+-   **Domínios:** Configurar nomes de domínio para suas aplicações.
+-   **HTTPS:** Implementar certificados SSL/TLS para comunicação segura.
+-   **Orquestração:** Usar ferramentas como Kubernetes para gerenciar a implantação e escalabilidade.
+
+Para este projeto, a configuração do Docker Compose é suficiente para ambientes de desenvolvimento e demonstração.

@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const configController = require('../controllers/configController');
 
-router.get('/', configController.getConfig);
-router.post('/', configController.updateConfig);
+router.get('/status', configController.getApiStatus);
 
 module.exports = router;

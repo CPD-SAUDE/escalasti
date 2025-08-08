@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getScheduleByMonth as fetchScheduleByMonthApi, addOrUpdateScheduleEntry as addOrUpdateScheduleEntryApi } from '@/lib/api';
+import { getScheduleByMonth, addOrUpdateScheduleEntry } from '@/lib/api';
 import { ScheduleEntry } from '@/lib/types';
 
 export function useSchedule(year: number, month: number) {
@@ -11,36 +11,33 @@ export function useSchedule(year: number, month: number) {
     setIsLoading(true);
     setError(null);
     try {
-      const data = await fetchScheduleByMonthApi(year, month);
+      const data = await getScheduleByMonth(year, month);
       setSchedule(data);
     } catch (err) {
-      setError('Failed to fetch schedule.');
-      console.error('Error fetching schedule:', err);
+      setError('Erro ao carregar escala.');
+      console.error(err);
     } finally {
       setIsLoading(false);
     }
   }, [year, month]);
 
-  const addOrUpdateScheduleEntry = useCallback(async (entry: Omit<ScheduleEntry, 'id'>) => {
+  useEffect(() => {
+    fetchSchedule();
+  }, [fetchSchedule]);
+
+  const updateEntry = useCallback(async (entry: Omit<ScheduleEntry, 'id'>) => {
     setIsLoading(true);
     setError(null);
     try {
-      const updatedEntry = await addOrUpdateScheduleEntryApi(entry);
-      // Re-fetch the entire schedule to ensure consistency after update/add
-      await fetchSchedule();
-      return updatedEntry;
+      await addOrUpdateScheduleEntry(entry);
+      await fetchSchedule(); // Recarrega a escala após a atualização
     } catch (err) {
-      setError('Failed to add or update schedule entry.');
-      console.error('Error adding/updating schedule entry:', err);
-      throw err;
+      setError('Erro ao atualizar entrada da escala.');
+      console.error(err);
     } finally {
       setIsLoading(false);
     }
   }, [fetchSchedule]);
 
-  useEffect(() => {
-    fetchSchedule();
-  }, [fetchSchedule]);
-
-  return { schedule, isLoading, error, fetchSchedule, addOrUpdateScheduleEntry };
+  return { schedule, isLoading, error, updateEntry, fetchSchedule };
 }
